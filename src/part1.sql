@@ -1,0 +1,70 @@
+CREATE DATABASE school21;
+CREATE TABLE peers
+(
+	nickname VARCHAR PRIMARY KEY,
+	birthday DATE NOT NULL
+);
+CREATE TABLE tasks
+(
+	title VARCHAR PRIMARY KEY,
+	parent_task VARCHAR REFERENCES tasks,
+	max_xp INT NOT NULL
+);
+CREATE TABLE checks
+(
+	id BIGINT PRIMARY KEY,
+	peer VARCHAR NOT NULL REFERENCES peers,
+	task VARCHAR NOT NULL REFERENCES tasks,
+	date DATE NOT NULL
+);
+CREATE TYPE check_status as ENUM ('Start', 'Success', 'Failure');
+CREATE TABLE p2p
+(
+	id BIGINT PRIMARY KEY,
+	"check" BIGINT NOT NULL REFERENCES checks,
+	checking_peer VARCHAR NOT NULL REFERENCES peers,
+	state check_status NOT NULL,
+	time TIME NOT NULL
+);
+
+CREATE TABLE verter
+(
+	id BIGINT PRIMARY KEY,
+	"check" BIGINT NOT NULL REFERENCES checks,
+	state check_status NOT NULL,
+	time TIME NOT NULL
+);
+
+CREATE TABLE transferred_points
+(
+	id BIGINT PRIMARY KEY,
+	checking_peer VARCHAR NOT NULL REFERENCES peers,
+	checked_peer VARCHAR NOT NULL REFERENCES peers,
+	points_amount INTEGER DEFAULT 0 NOT NULL
+);
+CREATE TABLE friends
+(
+	id BIGINT PRIMARY KEY,
+	peer1 VARCHAR NOT NULL REFERENCES peers,
+	peer2 VARCHAR NOT NULL REFERENCES peers
+);
+CREATE TABLE recommendations
+(
+	id BIGINT PRIMARY KEY,
+	peer VARCHAR NOT NULL REFERENCES peers,
+	recommended_peer VARCHAR DEFAULT 0 NOT NULL REFERENCES peers
+);
+CREATE TABLE xp
+(
+	id BIGINT PRIMARY KEY,
+	"check" BIGINT NOT NULL REFERENCES checks,
+	xp_amount INTEGER NOT NULL
+);
+CREATE TABLE time_tracking
+(
+	id BIGINT PRIMARY KEY,
+	peer VARCHAR NOT NULL REFERENCES peers,
+	date DATE NOT NULL,
+	time TIME NOT NULL,
+	state CHAR NOT NULL
+);
