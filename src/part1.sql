@@ -15,7 +15,7 @@ CREATE TABLE tasks
 );
 CREATE TABLE checks
 (
-	id SERIAL PRIMARY KEY,
+	id BIGINT PRIMARY KEY,
 	peer VARCHAR NOT NULL REFERENCES peers,
 	task VARCHAR NOT NULL REFERENCES tasks,
 	date DATE NOT NULL
@@ -26,7 +26,7 @@ CREATE TYPE check_status as ENUM ('Start', 'Success', 'Failure');
 
 CREATE TABLE p2p
 (
-	id SERIAL PRIMARY KEY,
+	id BIGINT PRIMARY KEY,
 	"check" BIGINT NOT NULL REFERENCES checks,
 	checking_peer VARCHAR NOT NULL REFERENCES peers,
 	state check_status NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE p2p
 
 CREATE TABLE verter
 (
-	id SERIAL PRIMARY KEY,
+	id BIGINT PRIMARY KEY,
 	"check" BIGINT NOT NULL REFERENCES checks,
 	state check_status NOT NULL,
 	time TIME NOT NULL
@@ -43,36 +43,36 @@ CREATE TABLE verter
 
 CREATE TABLE transferred_points
 (
-	id SERIAL PRIMARY KEY,
+	id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	checking_peer VARCHAR NOT NULL REFERENCES peers,
 	checked_peer VARCHAR NOT NULL REFERENCES peers,
-	points_amount INTEGER DEFAULT 0 NOT NULL
+	points_amount INTEGER NOT NULL
 );
 CREATE TABLE friends
 (
-	id SERIAL PRIMARY KEY,
+	id BIGINT PRIMARY KEY,
 	peer1 VARCHAR NOT NULL REFERENCES peers,
 	peer2 VARCHAR NOT NULL REFERENCES peers
 );
 CREATE TABLE recommendations
 (
-	id SERIAL PRIMARY KEY,
+	id BIGINT PRIMARY KEY,
 	peer VARCHAR NOT NULL REFERENCES peers,
-	recommended_peer VARCHAR DEFAULT 0 NOT NULL REFERENCES peers
+	recommended_peer VARCHAR NOT NULL REFERENCES peers
 );
 CREATE TABLE xp
 (
-	id SERIAL PRIMARY KEY,
+	id BIGINT PRIMARY KEY,
 	"check" BIGINT NOT NULL REFERENCES checks,
 	xp_amount INTEGER NOT NULL
 );
 CREATE TABLE time_tracking
 (
-	id SERIAL PRIMARY KEY,
+	id BIGINT PRIMARY KEY,
 	peer VARCHAR NOT NULL REFERENCES peers,
 	date DATE NOT NULL,
 	time TIME NOT NULL,
-	state CHAR NOT NULL
+	state INTEGER NOT NULL CHECK (state IN (1, 2))
 );
 
 ----------Cоздание ограничений для таблиц----------
@@ -100,7 +100,7 @@ BEGIN
 END;
 $time_p2p$ LANGUAGE PLPGSQL;
 
-CREATE OR REPLACE FUNCTION fnc_trg_p2p_insert_update() RETURNS TRIGGER AS $p2p_insert_update$
+CREATE OR REPLACE FUNCTION fnc_trg_p2p_insert() RETURNS TRIGGER AS $p2p_insert$
 	BEGIN
 		IF NEW.state = 'Start' THEN
 			IF (SELECT count(state)
@@ -148,15 +148,15 @@ CREATE OR REPLACE FUNCTION fnc_trg_p2p_insert_update() RETURNS TRIGGER AS $p2p_i
 		END IF;						
 	RETURN NEW;
 	END;
-$p2p_insert_update$ LANGUAGE plpgsql;
+$p2p_insert$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_p2p_insert_update
-BEFORE INSERT OR UPDATE ON p2p
+CREATE TRIGGER trg_p2p_insert
+BEFORE INSERT ON p2p
 FOR EACH ROW 
-EXECUTE FUNCTION fnc_trg_p2p_insert_update();
+EXECUTE FUNCTION fnc_trg_p2p_insert();
 
 ----------Проверка Verter'ом может ссылаться только на те проверки в таблице Checks, которые уже включают в себя успешную P2P проверку----------
-CREATE OR REPLACE FUNCTION fnc_trg_verter_insert_update() RETURNS TRIGGER AS $verter_insert_update$
+CREATE OR REPLACE FUNCTION fnc_trg_verter_insert() RETURNS TRIGGER AS $verter_insert$
 	BEGIN
 		IF NEW."check" NOT IN (SELECT checks.id 
 							   FROM checks
@@ -196,12 +196,12 @@ CREATE OR REPLACE FUNCTION fnc_trg_verter_insert_update() RETURNS TRIGGER AS $ve
 		END IF;					
 	RETURN NEW;
 	END;
-$verter_insert_update$ LANGUAGE plpgsql;
+$verter_insert$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_verter_insert_update
-BEFORE INSERT OR UPDATE ON verter
+CREATE TRIGGER trg_verter_insert
+BEFORE INSERT ON verter
 FOR EACH ROW 
-EXECUTE FUNCTION fnc_trg_verter_insert_update();
+EXECUTE FUNCTION fnc_trg_verter_insert();
 
 ----------Индекс для обеспечения уникальности пар в таблице transferred_points----------
 CREATE UNIQUE INDEX idx_transferred_points ON transferred_points(checking_peer, checked_peer);
@@ -238,5 +238,74 @@ $transferred_points_insert_update$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_transferred_points_insert_update
 AFTER INSERT ON p2p
 FOR EACH ROW 
-WHEN (NEW.state = 'Start')
+WHEN (NEW.state IN ('Success', 'Failure'))
 EXECUTE FUNCTION fnc_trg_transferred_points_insert_update();
+
+----------Количество XP в таблице xp не может превышать максимальное доступное для проверяемой задачи. Первое поле этой таблицы может ссылаться только на успешные проверки----------
+CREATE OR REPLACE FUNCTION fnc_trg_xp_insert() RETURNS TRIGGER AS $xp_insert$
+	BEGIN
+		IF NEW."check" IN (SELECT checks.id 
+						   FROM checks
+						   JOIN p2p ON checks.id = p2p."check"
+						   WHERE state != 'Success')
+		THEN RAISE EXCEPTION 'This check did not pass the peer review';
+		END IF;
+		IF NEW."check" IN (SELECT checks.id 
+						   FROM checks
+						   JOIN verter ON checks.id = verter."check"
+						   WHERE state = 'Failure')
+		THEN RAISE EXCEPTION 'This check did not pass the Verter';
+		END IF;
+		IF NEW.xp_amount > (SELECT max_xp
+							FROM tasks
+							JOIN checks ON title = checks.task
+							WHERE checks.id = NEW."check")	
+		THEN RAISE EXCEPTION 'Too many XP';
+		END IF;					
+	RETURN NEW;
+	END;
+$xp_insert$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_xp_insert
+BEFORE INSERT ON xp
+FOR EACH ROW 
+EXECUTE FUNCTION fnc_trg_xp_insert();
+
+
+
+CREATE OR REPLACE FUNCTION fnc_trg_p2p_insert() RETURNS TRIGGER AS $p2p_insert$
+	BEGIN
+		IF NEW.date > (SELECT DISTINCT date
+					   FROM time_tracking
+					   ORDER BY date DESC
+					   LIMIT 1) THEN
+			IF (SELECT count(state)
+				FROM time_tracking
+				WHERE state = 1 AND "date" = (SELECT DISTINCT date
+					   						  FROM time_tracking
+					   						  ORDER BY date DESC
+					   						  LIMIT 1)) >
+				(SELECT count(state)
+				FROM time_tracking
+				WHERE state = 2 AND "date" = (SELECT DISTINCT date
+					   						  FROM time_tracking
+					   						  ORDER BY date DESC
+					   						  LIMIT 1))
+			THEN RAISE EXCEPTION 'Not all peers have gone home at %', 
+			(SELECT DISTINCT date
+			FROM time_tracking
+		    ORDER BY date DESC
+			LIMIT 1);
+			END IF;
+		END IF;
+											  							  		   				
+	RETURN NEW;
+	END;
+$p2p_insert$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_time_tracking
+BEFORE INSERT ON time_tracking
+FOR EACH ROW 
+EXECUTE FUNCTION fnc_trg_time_tracking();
+
+				   
