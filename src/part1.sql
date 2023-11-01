@@ -15,15 +15,18 @@ CREATE TABLE tasks
 );
 CREATE TABLE checks
 (
-	id BIGINT PRIMARY KEY,
+	id SERIAL PRIMARY KEY,
 	peer VARCHAR NOT NULL REFERENCES peers,
 	task VARCHAR NOT NULL REFERENCES tasks,
 	date DATE NOT NULL
 );
+
+----------Создание типа перечисления----------
 CREATE TYPE check_status as ENUM ('Start', 'Success', 'Failure');
+
 CREATE TABLE p2p
 (
-	id BIGINT PRIMARY KEY,
+	id SERIAL PRIMARY KEY,
 	"check" BIGINT NOT NULL REFERENCES checks,
 	checking_peer VARCHAR NOT NULL REFERENCES peers,
 	state check_status NOT NULL,
@@ -32,7 +35,7 @@ CREATE TABLE p2p
 
 CREATE TABLE verter
 (
-	id BIGINT PRIMARY KEY,
+	id SERIAL PRIMARY KEY,
 	"check" BIGINT NOT NULL REFERENCES checks,
 	state check_status NOT NULL,
 	time TIME NOT NULL
@@ -40,32 +43,32 @@ CREATE TABLE verter
 
 CREATE TABLE transferred_points
 (
-	id BIGINT PRIMARY KEY,
+	id SERIAL PRIMARY KEY,
 	checking_peer VARCHAR NOT NULL REFERENCES peers,
 	checked_peer VARCHAR NOT NULL REFERENCES peers,
 	points_amount INTEGER DEFAULT 0 NOT NULL
 );
 CREATE TABLE friends
 (
-	id BIGINT PRIMARY KEY,
+	id SERIAL PRIMARY KEY,
 	peer1 VARCHAR NOT NULL REFERENCES peers,
 	peer2 VARCHAR NOT NULL REFERENCES peers
 );
 CREATE TABLE recommendations
 (
-	id BIGINT PRIMARY KEY,
+	id SERIAL PRIMARY KEY,
 	peer VARCHAR NOT NULL REFERENCES peers,
 	recommended_peer VARCHAR DEFAULT 0 NOT NULL REFERENCES peers
 );
 CREATE TABLE xp
 (
-	id BIGINT PRIMARY KEY,
+	id SERIAL PRIMARY KEY,
 	"check" BIGINT NOT NULL REFERENCES checks,
 	xp_amount INTEGER NOT NULL
 );
 CREATE TABLE time_tracking
 (
-	id BIGINT PRIMARY KEY,
+	id SERIAL PRIMARY KEY,
 	peer VARCHAR NOT NULL REFERENCES peers,
 	date DATE NOT NULL,
 	time TIME NOT NULL,
@@ -150,4 +153,90 @@ $p2p_insert_update$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_p2p_insert_update
 BEFORE INSERT OR UPDATE ON p2p
 FOR EACH ROW 
-EXECUTE PROCEDURE fnc_trg_p2p_insert_update();
+EXECUTE FUNCTION fnc_trg_p2p_insert_update();
+
+----------Проверка Verter'ом может ссылаться только на те проверки в таблице Checks, которые уже включают в себя успешную P2P проверку----------
+CREATE OR REPLACE FUNCTION fnc_trg_verter_insert_update() RETURNS TRIGGER AS $verter_insert_update$
+	BEGIN
+		IF NEW."check" NOT IN (SELECT checks.id 
+							   FROM checks
+							   JOIN p2p ON checks.id = p2p."check"
+							   WHERE state = 'Success')
+		THEN RAISE EXCEPTION 'This check did not pass the peer review';
+		END IF;
+		IF NEW.state = 'Start' THEN
+			IF (SELECT count(state)
+				FROM verter
+				WHERE "check" = NEW."check" AND state = 'Start') > 
+				(SELECT count(state)
+				 FROM verter
+				 WHERE "check" = NEW."check" AND state != 'Start')
+			THEN RAISE EXCEPTION 'The check already has the Start status';
+			ELSEIF EXISTS (SELECT *
+						   FROM verter
+						   WHERE "check" = NEW."check" AND state != 'Start')
+			THEN RAISE EXCEPTION 'The check has already been completed';
+			END IF;
+		END IF;	
+		IF NEW.state IN ('Success', 'Failure') THEN
+			IF EXISTS (SELECT *
+				 	   FROM verter
+				 	   WHERE "check" = NEW."check" AND state != 'Start')
+			THEN RAISE EXCEPTION 'The check has already been completed';
+			END IF;
+			IF NOT EXISTS (SELECT *
+						   FROM verter
+						   WHERE "check" = NEW."check")
+			THEN RAISE EXCEPTION 'Tne check cannot be completed earlier than it started';
+			ELSIF NEW.time <= (SELECT time
+					   		FROM verter
+					   		WHERE "check" = NEW."check") 
+			THEN RAISE EXCEPTION 'Tne check cannot be completed earlier than it started';
+			END IF;
+		END IF;					
+	RETURN NEW;
+	END;
+$verter_insert_update$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_verter_insert_update
+BEFORE INSERT OR UPDATE ON verter
+FOR EACH ROW 
+EXECUTE FUNCTION fnc_trg_verter_insert_update();
+
+----------Индекс для обеспечения уникальности пар в таблице transferred_points----------
+CREATE UNIQUE INDEX idx_transferred_points ON transferred_points(checking_peer, checked_peer);
+
+----------Автоматическое заполнение таблицы transferred_points при добавлении записей в таблицу p2p со статусом Start----------
+
+CREATE OR REPLACE FUNCTION fnc_trg_transferred_points_insert_update() RETURNS TRIGGER AS $transferred_points_insert_update$
+	BEGIN
+		IF (TG_OP = 'INSERT') THEN
+			IF NOT EXISTS (SELECT *
+						   FROM transferred_points
+						   WHERE checking_peer = NEW.checking_peer 
+						   		AND checked_peer = (SELECT peer
+				    								FROM checks
+													WHERE id = NEW."check"))
+			THEN INSERT INTO transferred_points(checking_peer, checked_peer, points_amount)
+			VALUES(NEW.checking_peer, 
+				   (SELECT peer
+				    FROM checks
+					WHERE id = NEW."check"),
+					1);
+			ELSE UPDATE transferred_points 
+				 SET points_amount = points_amount + 1
+				 WHERE checking_peer = NEW.checking_peer 
+					   AND checked_peer = (SELECT peer
+				    					   FROM checks
+										   WHERE id = NEW."check");		
+        	END IF;
+		END IF;
+		RETURN NULL; 
+    END;
+$transferred_points_insert_update$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_transferred_points_insert_update
+AFTER INSERT ON p2p
+FOR EACH ROW 
+WHEN (NEW.state = 'Start')
+EXECUTE FUNCTION fnc_trg_transferred_points_insert_update();
