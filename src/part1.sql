@@ -97,7 +97,7 @@ BEGIN
 END;
 $time_p2p$ LANGUAGE PLPGSQL;
 
-CREATE OR REPLACE FUNCTION fnc_trg_p2p_insert() RETURNS TRIGGER AS $p2p_insert$
+CREATE OR REPLACE FUNCTION fnc_trg_p2p_insert_update() RETURNS TRIGGER AS $p2p_insert_update$
 	BEGIN
 		IF NEW.state = 'Start' THEN
 			IF (SELECT count(state)
@@ -132,6 +132,11 @@ CREATE OR REPLACE FUNCTION fnc_trg_p2p_insert() RETURNS TRIGGER AS $p2p_insert$
 					   		WHERE "check" = NEW."check") 
 			THEN RAISE EXCEPTION 'Tne check cannot be completed earlier than it started';
 			END IF;	
+			IF NEW.checking_peer != (SELECT checking_peer
+									 FROM p2p
+									 WHERE "check" = NEW."check")
+			THEN RAISE EXCEPTION 'Tne checking_peer does not match the one who started the check';
+			END IF;
 		END IF;
 		IF NEW.checking_peer = (SELECT peer
 								FROM checks
@@ -140,9 +145,9 @@ CREATE OR REPLACE FUNCTION fnc_trg_p2p_insert() RETURNS TRIGGER AS $p2p_insert$
 		END IF;						
 	RETURN NEW;
 	END;
-$p2p_insert$ LANGUAGE plpgsql;
+$p2p_insert_update$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_p2p_insert
+CREATE TRIGGER trg_p2p_insert_update
 BEFORE INSERT OR UPDATE ON p2p
 FOR EACH ROW 
-EXECUTE PROCEDURE fnc_trg_p2p_insert();
+EXECUTE PROCEDURE fnc_trg_p2p_insert_update();
