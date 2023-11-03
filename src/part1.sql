@@ -313,3 +313,18 @@ CREATE TRIGGER trg_time_tracking
 BEFORE INSERT ON time_tracking
 FOR EACH ROW 
 EXECUTE FUNCTION fnc_trg_time_tracking();
+
+----------Процедуры, позволяющие импортировать и экспортировать данные для каждой таблицы из файла/в файл с расширением .csv----------
+
+CREATE OR REPLACE PROCEDURE import_date 
+	(IN table_name VARCHAR, IN file_path TEXT, IN separator CHAR) AS $import$
+		BEGIN
+			EXECUTE format('COPY %s FROM '%s' DELIMITER '%s';', 'table_name', 'file_path', 'separator');
+		END;
+$import$ LANGUAGE plpgsql;			
+CREATE OR REPLACE PROCEDURE export_date 
+	(IN table_name VARCHAR, IN file_path TEXT, IN separator CHAR) AS $import$
+		BEGIN
+			EXECUTE format('COPY %s TO '%s' DELIMITER '%s';', 'table_name', 'file_path', 'separator');
+		END;
+$import$ LANGUAGE plpgsql;			
