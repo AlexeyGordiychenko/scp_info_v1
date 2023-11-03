@@ -319,12 +319,16 @@ EXECUTE FUNCTION fnc_trg_time_tracking();
 CREATE OR REPLACE PROCEDURE import_date 
 	(IN table_name VARCHAR, IN file_path TEXT, IN separator CHAR) AS $import$
 		BEGIN
-			EXECUTE format('COPY %s FROM '%s' DELIMITER '%s';', 'table_name', 'file_path', 'separator');
+			EXECUTE format('COPY %s FROM ''%s'' DELIMITER ''%s'' CSV HEADER;', table_name, file_path, separator);
 		END;
 $import$ LANGUAGE plpgsql;			
 CREATE OR REPLACE PROCEDURE export_date 
 	(IN table_name VARCHAR, IN file_path TEXT, IN separator CHAR) AS $import$
 		BEGIN
-			EXECUTE format('COPY %s TO '%s' DELIMITER '%s';', 'table_name', 'file_path', 'separator');
+			EXECUTE format('COPY %s FROM ''%s'' DELIMITER ''%s'' CSV HEADER;', table_name, file_path, separator);
 		END;
-$import$ LANGUAGE plpgsql;			
+$import$ LANGUAGE plpgsql;		
+
+CALL import_date ('peers', '/tmp/peers.csv', ',');
+CALL import_date ('tasks', '/tmp/tasks.csv', ',');
+CALL import_date ('checks', '/tmp/checks.csv', ',');
