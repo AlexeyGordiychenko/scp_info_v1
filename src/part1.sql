@@ -271,41 +271,45 @@ BEFORE INSERT ON xp
 FOR EACH ROW 
 EXECUTE FUNCTION fnc_trg_xp_insert();
 
+----------В таблице time_tracking в течение одного дня должно быть одинаковое количество записей с состоянием 1 и состоянием 2 для каждого пира----------
 
+CREATE VIEW last_date AS
+(SELECT DISTINCT date
+FROM time_tracking
+ORDER BY date DESC
+LIMIT 1);
 
-CREATE OR REPLACE FUNCTION fnc_trg_p2p_insert() RETURNS TRIGGER AS $p2p_insert$
+CREATE OR REPLACE FUNCTION fnc_trg_time_tracking() RETURNS TRIGGER AS $time_tracking$
 	BEGIN
-		IF NEW.date > (SELECT DISTINCT date
-					   FROM time_tracking
-					   ORDER BY date DESC
-					   LIMIT 1) THEN
+		IF NEW.date > (SELECT * FROM last_date) THEN
 			IF (SELECT count(state)
 				FROM time_tracking
-				WHERE state = 1 AND "date" = (SELECT DISTINCT date
-					   						  FROM time_tracking
-					   						  ORDER BY date DESC
-					   						  LIMIT 1)) >
+				WHERE state = 1 AND "date" = (SELECT * FROM last_date)) >
 				(SELECT count(state)
 				FROM time_tracking
-				WHERE state = 2 AND "date" = (SELECT DISTINCT date
-					   						  FROM time_tracking
-					   						  ORDER BY date DESC
-					   						  LIMIT 1))
-			THEN RAISE EXCEPTION 'Not all peers have gone home at %', 
-			(SELECT DISTINCT date
-			FROM time_tracking
-		    ORDER BY date DESC
-			LIMIT 1);
+				WHERE state = 2 AND "date" = (SELECT * FROM last_date))
+			THEN RAISE EXCEPTION 'Not all peers have gone home %', (SELECT * FROM last_date);
 			END IF;
 		END IF;
-											  							  		   				
+		IF NEW.state = 2 THEN 
+			IF NOT EXISTS (SELECT *
+						  FROM time_tracking
+						  WHERE peer = NEW.peer AND date = NEW.date AND state = 1)	
+			THEN RAISE EXCEPTION 'This peer has not entered the campus yet';
+			END IF;
+			IF NEW.time < (SELECT time 
+			FROM time_tracking
+			WHERE peer = NEW.peer AND date = NEW.date AND state = 1
+			ORDER BY time DESC
+			LIMIT 1)
+			THEN RAISE EXCEPTION 'The exit time cannot be less than the entry time';
+			END IF;
+		END IF;	
 	RETURN NEW;
 	END;
-$p2p_insert$ LANGUAGE plpgsql;
+$time_tracking$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_time_tracking
 BEFORE INSERT ON time_tracking
 FOR EACH ROW 
 EXECUTE FUNCTION fnc_trg_time_tracking();
-
-				   
