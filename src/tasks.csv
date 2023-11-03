@@ -1,0 +1,8 @@
+title,parent_task,max_xp
+C2_SimpleBashUtils,,250
+C3_s21_string+,C2_SimpleBashUtils,500
+C4_s21_math,C3_s21_string+,300
+C5_s21_decimal,C4_s21_math,350
+C6_s21_matrix,C5_s21_decimal,200
+C7_SmartCalc_v1.0,C6_s21_matrix,500
+C8_3DViewer_v1.0,C7_SmartCalc_v1.0,750
