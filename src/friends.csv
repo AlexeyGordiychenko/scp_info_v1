@@ -1,0 +1,7 @@
+id,peer1,peer2
+1,marmeladka,konfetka
+2,marmeladka,pechenca
+3,marmeladka,morozhenka
+4,konfetka,pechenca
+5,pechenca,morozhenka
+6,morozhenka,arbuzik
