@@ -247,13 +247,23 @@ CREATE OR REPLACE FUNCTION fnc_trg_xp_insert() RETURNS TRIGGER AS $xp_insert$
 		IF NEW."check" IN (SELECT checks.id 
 						   FROM checks
 						   JOIN p2p ON checks.id = p2p."check"
-						   WHERE state != 'Success')
+						   WHERE state = 'Start'
+						   EXCEPT
+						   SELECT checks.id 
+						   FROM checks
+						   JOIN p2p ON checks.id = p2p."check"
+						   WHERE state = 'Success')
 		THEN RAISE EXCEPTION 'This check did not pass the peer review';
 		END IF;
 		IF NEW."check" IN (SELECT checks.id 
 						   FROM checks
 						   JOIN verter ON checks.id = verter."check"
-						   WHERE state = 'Failure')
+						   WHERE state = 'Start'
+						   EXCEPT
+						   SELECT checks.id 
+						   FROM checks
+  						   JOIN verter ON checks.id = verter."check"
+						   WHERE state = 'Success')
 		THEN RAISE EXCEPTION 'This check did not pass the Verter';
 		END IF;
 		IF NEW.xp_amount > (SELECT max_xp
@@ -332,3 +342,9 @@ $import$ LANGUAGE plpgsql;
 CALL import_date ('peers', '/tmp/peers.csv', ',');
 CALL import_date ('tasks', '/tmp/tasks.csv', ',');
 CALL import_date ('checks', '/tmp/checks.csv', ',');
+CALL import_date ('p2p', '/tmp/p2p.csv', ',');
+CALL import_date ('verter', '/tmp/verter.csv', ',');
+CALL import_date ('friends', '/tmp/friends.csv', ',');
+CALL import_date ('recommendations', '/tmp/recommendations.csv', ',');
+CALL import_date ('xp', '/tmp/xp.csv', ',');
+CALL import_date ('time_tracking', '/tmp/time_tracking.csv', ',');
