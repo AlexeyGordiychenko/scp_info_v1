@@ -326,25 +326,25 @@ EXECUTE FUNCTION fnc_trg_time_tracking();
 
 ----------Процедуры, позволяющие импортировать и экспортировать данные для каждой таблицы из файла/в файл с расширением .csv----------
 
-CREATE OR REPLACE PROCEDURE import_date 
+CREATE OR REPLACE PROCEDURE import_data 
 	(IN table_name VARCHAR, IN file_path TEXT, IN separator CHAR) AS $import$
 		BEGIN
 			EXECUTE format('COPY %s FROM ''%s'' DELIMITER ''%s'' CSV HEADER;', table_name, file_path, separator);
 		END;
 $import$ LANGUAGE plpgsql;			
-CREATE OR REPLACE PROCEDURE export_date 
+CREATE OR REPLACE PROCEDURE export_data 
 	(IN table_name VARCHAR, IN file_path TEXT, IN separator CHAR) AS $import$
 		BEGIN
 			EXECUTE format('COPY %s FROM ''%s'' DELIMITER ''%s'' CSV HEADER;', table_name, file_path, separator);
 		END;
 $import$ LANGUAGE plpgsql;		
 
-CALL import_date ('peers', '/tmp/peers.csv', ',');
-CALL import_date ('tasks', '/tmp/tasks.csv', ',');
-CALL import_date ('checks', '/tmp/checks.csv', ',');
-CALL import_date ('p2p', '/tmp/p2p.csv', ',');
-CALL import_date ('verter', '/tmp/verter.csv', ',');
-CALL import_date ('friends', '/tmp/friends.csv', ',');
-CALL import_date ('recommendations', '/tmp/recommendations.csv', ',');
-CALL import_date ('xp', '/tmp/xp.csv', ',');
-CALL import_date ('time_tracking', '/tmp/time_tracking.csv', ',');
+CALL import_data ('peers', '/tmp/peers.csv', ',');
+CALL import_data ('tasks', '/tmp/tasks.csv', ',');
+CALL import_data ('checks', '/tmp/checks.csv', ',');
+CALL import_data ('p2p', '/tmp/p2p.csv', ',');
+CALL import_data ('verter', '/tmp/verter.csv', ',');
+CALL import_data ('friends', '/tmp/friends.csv', ',');
+CALL import_data ('recommendations', '/tmp/recommendations.csv', ',');
+CALL import_data ('xp', '/tmp/xp.csv', ',');
+CALL import_data ('time_tracking', '/tmp/time_tracking.csv', ',');
