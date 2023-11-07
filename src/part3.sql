@@ -1,5 +1,7 @@
 -- @block
 -- @conn school21
+-- Write a function that returns the TransferredPoints table in a more
+-- human-readable form
 CREATE OR REPLACE FUNCTION fnc_transferred_points() RETURNS TABLE(
         peer1 VARCHAR,
         peer2 VARCHAR,
@@ -36,4 +38,25 @@ FROM transfer_sum AS t1
     LEFT JOIN transfer_sum AS t2 -- to subtract the amount of a backward transfer
     ON t1.checking_peer = t2.checked_peer
     AND t1.checked_peer = t2.checking_peer
-    AND t1.checked_peer = t2.checking_peer $$ LANGUAGE SQL;
+    AND t1.checked_peer = t2.checking_peer;
+
+$$ LANGUAGE SQL;
+
+-- @block
+-- @conn school21
+-- Write a function that returns a table of the following form: user name, name
+-- of the checked task, number of XP received
+CREATE OR REPLACE FUNCTION fnc_checked_tasks_xp() RETURNS TABLE(
+        peer1 VARCHAR,
+        task VARCHAR,
+        XP INTEGER
+    ) AS $$
+SELECT checks.peer AS peer,
+    SPLIT_PART(checks.task, '_', 1) AS task,
+    xp.xp_amount AS XP
+FROM xp
+    JOIN checks ON xp."check" = checks.id
+ORDER BY peer,
+    task;
+
+$$ LANGUAGE SQL;
