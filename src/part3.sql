@@ -126,3 +126,34 @@ ORDER BY
     points_change DESC;
 
 $$ LANGUAGE SQL;
+
+-- @block
+-- @conn school21
+-- Calculate the change in the number of peer points of each peer using the
+-- table returned by the first function
+CREATE
+OR REPLACE FUNCTION fnc_points_change2() RETURNS TABLE(peer VARCHAR, points_change INTEGER) AS $$
+SELECT
+    peer,
+    SUM(points_amount) AS points_change
+FROM
+    (
+        SELECT
+            peer1 AS peer,
+            points_amount
+        FROM
+            fnc_transferred_points()
+        UNION
+        ALL
+        SELECT
+            peer2 AS peer,
+            points_amount * (-1)
+        FROM
+            fnc_transferred_points()
+    ) AS d
+GROUP BY
+    peer
+ORDER BY
+    points_change DESC;
+
+$$ LANGUAGE SQL;
