@@ -4,12 +4,12 @@ CREATE DATABASE school21;
 ----------Cоздание таблиц----------
 CREATE TABLE peers
 (
-	nickname VARCHAR PRIMARY KEY,
+	nickname VARCHAR UNIQUE PRIMARY KEY,
 	birthday DATE NOT NULL
 );
 CREATE TABLE tasks
 (
-	title VARCHAR PRIMARY KEY,
+	title VARCHAR UNIQUE PRIMARY KEY,
 	parent_task VARCHAR REFERENCES tasks,
 	max_xp INT NOT NULL
 );
@@ -32,7 +32,6 @@ CREATE TABLE p2p
 	state check_status NOT NULL,
 	time TIME NOT NULL
 );
-
 CREATE TABLE verter
 (
 	id BIGINT PRIMARY KEY,
@@ -40,10 +39,9 @@ CREATE TABLE verter
 	state check_status NOT NULL,
 	time TIME NOT NULL
 );
-
 CREATE TABLE transferred_points
 (
-	id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+	id BIGINT PRIMARY KEY,
 	checking_peer VARCHAR NOT NULL REFERENCES peers,
 	checked_peer VARCHAR NOT NULL REFERENCES peers,
 	points_amount INTEGER NOT NULL
@@ -89,10 +87,10 @@ CREATE OR REPLACE FUNCTION fnc_trg_p2p_insert() RETURNS TRIGGER AS $p2p_insert$
 				LIMIT 1) = 'Start'
 			THEN RAISE EXCEPTION 'The check already has the Start status';
 			ELSEIF (SELECT state
-				FROM p2p
-				WHERE "check" = NEW."check"
-				ORDER BY id DESC
-				LIMIT 1) IN ('Success', 'Failure')
+					FROM p2p
+					WHERE "check" = NEW."check"
+					ORDER BY id DESC
+					LIMIT 1) IN ('Success', 'Failure')
 			THEN RAISE EXCEPTION 'The check has already been completed';
 			END IF;	
 			IF (SELECT state
@@ -116,8 +114,8 @@ CREATE OR REPLACE FUNCTION fnc_trg_p2p_insert() RETURNS TRIGGER AS $p2p_insert$
 						   WHERE "check" = NEW."check")
 			THEN RAISE EXCEPTION 'Tne check cannot be completed earlier than it started';
 			ELSIF NEW.time <= (SELECT time
-					   		FROM p2p
-					   		WHERE "check" = NEW."check") 
+							   FROM p2p
+							   WHERE "check" = NEW."check") 
 			THEN RAISE EXCEPTION 'Tne check cannot be completed earlier than it started';
 			END IF;	
 			IF NEW.checking_peer != (SELECT checking_peer
@@ -151,23 +149,26 @@ CREATE OR REPLACE FUNCTION fnc_trg_verter_insert() RETURNS TRIGGER AS $verter_in
 		THEN RAISE EXCEPTION 'This check did not pass the peer review';
 		END IF;
 		IF NEW.state = 'Start' THEN
-			IF (SELECT count(state)
-				FROM verter
-				WHERE "check" = NEW."check" AND state = 'Start') > 
-				(SELECT count(state)
-				 FROM verter
-				 WHERE "check" = NEW."check" AND state != 'Start')
+			IF (SELECT state
+					FROM verter
+					WHERE "check" = NEW."check"
+					ORDER BY id DESC
+					LIMIT 1) = 'Start'
 			THEN RAISE EXCEPTION 'The check already has the Start status';
-			ELSEIF EXISTS (SELECT *
-						   FROM verter
-						   WHERE "check" = NEW."check" AND state != 'Start')
+			ELSEIF (SELECT state
+					FROM verter
+					WHERE "check" = NEW."check"
+					ORDER BY id DESC
+					LIMIT 1) IN ('Success', 'Failure')
 			THEN RAISE EXCEPTION 'The check has already been completed';
 			END IF;
-		END IF;	
+		END IF;		
 		IF NEW.state IN ('Success', 'Failure') THEN
-			IF EXISTS (SELECT *
-				 	   FROM verter
-				 	   WHERE "check" = NEW."check" AND state != 'Start')
+			IF (SELECT state
+				FROM verter
+				WHERE "check" = NEW."check"
+				ORDER BY id DESC
+				LIMIT 1) IN ('Success', 'Failure')
 			THEN RAISE EXCEPTION 'The check has already been completed';
 			END IF;
 			IF NOT EXISTS (SELECT *
@@ -191,81 +192,6 @@ EXECUTE FUNCTION fnc_trg_verter_insert();
 
 ----------Индекс для обеспечения уникальности пар в таблице transferred_points----------
 CREATE UNIQUE INDEX idx_transferred_points ON transferred_points(checking_peer, checked_peer);
-
-----------Автоматическое заполнение таблицы transferred_points при добавлении записей в таблицу p2p со статусом Start----------
-
-CREATE OR REPLACE FUNCTION fnc_trg_transferred_points_insert_update() RETURNS TRIGGER AS $transferred_points_insert_update$
-	BEGIN
-		IF (TG_OP = 'INSERT') THEN
-			IF NOT EXISTS (SELECT *
-						   FROM transferred_points
-						   WHERE checking_peer = NEW.checking_peer 
-						   		AND checked_peer = (SELECT peer
-				    								FROM checks
-													WHERE id = NEW."check"))
-			THEN INSERT INTO transferred_points(checking_peer, checked_peer, points_amount)
-			VALUES(NEW.checking_peer, 
-				   (SELECT peer
-				    FROM checks
-					WHERE id = NEW."check"),
-					1);
-			ELSE UPDATE transferred_points 
-				 SET points_amount = points_amount + 1
-				 WHERE checking_peer = NEW.checking_peer 
-					   AND checked_peer = (SELECT peer
-				    					   FROM checks
-										   WHERE id = NEW."check");		
-        	END IF;
-		END IF;
-		RETURN NULL; 
-    END;
-$transferred_points_insert_update$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_transferred_points_insert_update
-AFTER INSERT ON p2p
-FOR EACH ROW 
-WHEN (NEW.state IN ('Success', 'Failure'))
-EXECUTE FUNCTION fnc_trg_transferred_points_insert_update();
-
-----------Количество XP в таблице xp не может превышать максимальное доступное для проверяемой задачи. Первое поле этой таблицы может ссылаться только на успешные проверки----------
-CREATE OR REPLACE FUNCTION fnc_trg_xp_insert() RETURNS TRIGGER AS $xp_insert$
-	BEGIN
-		IF NEW."check" IN (SELECT checks.id 
-						   FROM checks
-						   JOIN p2p ON checks.id = p2p."check"
-						   WHERE state = 'Start'
-						   EXCEPT
-						   SELECT checks.id 
-						   FROM checks
-						   JOIN p2p ON checks.id = p2p."check"
-						   WHERE state = 'Success')
-		THEN RAISE EXCEPTION 'This check did not pass the peer review';
-		END IF;
-		IF NEW."check" IN (SELECT checks.id 
-						   FROM checks
-						   JOIN verter ON checks.id = verter."check"
-						   WHERE state = 'Start'
-						   EXCEPT
-						   SELECT checks.id 
-						   FROM checks
-  						   JOIN verter ON checks.id = verter."check"
-						   WHERE state = 'Success')
-		THEN RAISE EXCEPTION 'This check did not pass the Verter';
-		END IF;
-		IF NEW.xp_amount > (SELECT max_xp
-							FROM tasks
-							JOIN checks ON title = checks.task
-							WHERE checks.id = NEW."check")	
-		THEN RAISE EXCEPTION 'Too many XP';
-		END IF;					
-	RETURN NEW;
-	END;
-$xp_insert$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_xp_insert
-BEFORE INSERT ON xp
-FOR EACH ROW 
-EXECUTE FUNCTION fnc_trg_xp_insert();
 
 ----------В таблице time_tracking в течение одного дня должно быть одинаковое количество записей с состоянием 1 и состоянием 2 для каждого пира----------
 
@@ -325,11 +251,14 @@ CREATE OR REPLACE PROCEDURE export_data
 		END;
 $import$ LANGUAGE plpgsql;		
 
+----------Заполнение таблиц----------
+
 CALL import_data ('peers', '/tmp/peers.csv', ',');
 CALL import_data ('tasks', '/tmp/tasks.csv', ',');
 CALL import_data ('checks', '/tmp/checks.csv', ',');
 CALL import_data ('p2p', '/tmp/p2p.csv', ',');
 CALL import_data ('verter', '/tmp/verter.csv', ',');
+CALL import_data ('transferred_points', '/tmp/transferred_points.csv', ',');
 CALL import_data ('friends', '/tmp/friends.csv', ',');
 CALL import_data ('recommendations', '/tmp/recommendations.csv', ',');
 CALL import_data ('xp', '/tmp/xp.csv', ',');
