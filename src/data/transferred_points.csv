@@ -19,3 +19,5 @@ id,checking_peer,checked_peer,points_amount
 18,arbuzik,konfetka,1
 19,arbuzik,pechenca,0
 20,arbuzik,morozhenka,0
+21,tortik,pirozhok,1
+22,pirozhok,tortik,2
