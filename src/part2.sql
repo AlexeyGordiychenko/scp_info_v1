@@ -4,12 +4,12 @@ CREATE OR REPLACE PROCEDURE add_p2p_check
 		BEGIN
 			IF pstate = 'Start' THEN
 				INSERT INTO checks
-				VALUES ((SELECT MAX(id)+1 FROM checks),
+				VALUES ((SELECT COALESCE (MAX(id)+1, 1) FROM checks),
 						pchecked_peer,
 						ptask,
 						CURRENT_DATE);
 				INSERT INTO p2p
-				VALUES ((SELECT MAX(id)+1 FROM p2p),
+				VALUES ((SELECT COALESCE (MAX(id)+1, 1) FROM p2p),
 						(SELECT MAX(id) FROM checks),
 						pchecking_peer,
 						pstate,
@@ -38,7 +38,7 @@ CREATE OR REPLACE PROCEDURE add_verter_check
 		BEGIN
 			IF pstate = 'Start' THEN
 				INSERT INTO verter
-				VALUES ((SELECT MAX(id)+1 FROM verter),
+				VALUES ((SELECT COALESCE (MAX(id)+1, 1) FROM verter),
 						(SELECT ch.id
 						 FROM checks ch
 						 JOIN p2p ON ch.id = p2p."check"
@@ -78,7 +78,8 @@ CREATE OR REPLACE FUNCTION fnc_trg_transferred_points_insert_update() RETURNS TR
 				    								FROM checks
 													WHERE id = NEW."check"))
 			THEN INSERT INTO transferred_points
-				 VALUES((SELECT MAX(id)+1 FROM transferred_points),
+				 VALUES((SELECT COALESCE (MAX(id)+1, 1) 
+				 		 FROM transferred_points),
 						NEW.checking_peer, 
 						(SELECT peer
 							FROM checks
@@ -145,7 +146,7 @@ EXECUTE FUNCTION fnc_trg_xp_insert();
 CALL add_verter_check ('pechenca', 'C5_s21_decimal', 'Start', '16:20:05');
 CALL add_verter_check ('pechenca', 'C5_s21_decimal', 'Success', '16:21:05');
 INSERT INTO xp
-VALUES ((SELECT MAX(id)+1 FROM xp),
+VALUES ((SELECT COALESCE (MAX(id)+1, 1) FROM xp),
 		(SELECT "check"
 		 FROM verter
 		 WHERE state = 'Success'
