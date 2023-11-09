@@ -20,7 +20,7 @@ id,checking_peer,checked_peer,points_amount
 19,arbuzik,pechenca,0
 20,arbuzik,morozhenka,0
 21,tortik,pirozhok,1
-22,pirozhok,tortik,2
+22,pirozhok,tortik,3
 23,pirozhok,keksik,1
 24,tortik,marmeladka,1
 25,pirozhok,marmeladka,1
@@ -28,3 +28,7 @@ id,checking_peer,checked_peer,points_amount
 27,tortik,arbuzik,1
 28,pirozhok,arbuzik,1
 29,keksik,arbuzik,1
+30,pechenca,tortik,1
+31,marmeladka,tortik,1
+32,arbuzik,tortik,1
+33,morozhenka,tortik,1
