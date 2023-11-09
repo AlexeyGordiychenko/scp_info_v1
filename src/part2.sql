@@ -1,13 +1,16 @@
 ----------Процедура добавления P2P проверки----------
 CREATE OR REPLACE PROCEDURE add_p2p_check 
-	(IN pchecked_peer VARCHAR, IN pchecking_peer VARCHAR, IN ptask VARCHAR, IN pstate check_status, IN ptime TIME) AS $add_p2p$
+	(IN pchecked_peer VARCHAR, IN pchecking_peer VARCHAR, IN ptask VARCHAR, IN pstate check_status, IN ptime TIME, IN pdate DATE DEFAULT NULL) AS $add_p2p$
 		BEGIN
+			IF pdate IS NULL THEN
+				pdate := CURRENT_DATE;
+			END IF;
 			IF pstate = 'Start' THEN
 				INSERT INTO checks
 				VALUES ((SELECT COALESCE (MAX(id)+1, 1) FROM checks),
 						pchecked_peer,
 						ptask,
-						CURRENT_DATE);
+						pdate);
 				INSERT INTO p2p
 				VALUES ((SELECT COALESCE (MAX(id)+1, 1) FROM p2p),
 						(SELECT MAX(id) FROM checks),
