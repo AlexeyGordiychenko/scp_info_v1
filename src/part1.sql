@@ -247,7 +247,7 @@ $import$ LANGUAGE plpgsql;
 CREATE OR REPLACE PROCEDURE export_data 
 	(IN table_name VARCHAR, IN file_path TEXT, IN separator CHAR) AS $import$
 		BEGIN
-			EXECUTE format('COPY %s FROM ''%s'' DELIMITER ''%s'' CSV HEADER;', table_name, file_path, separator);
+			EXECUTE format('COPY %s TO ''%s'' DELIMITER ''%s'' CSV HEADER;', table_name, file_path, separator);
 		END;
 $import$ LANGUAGE plpgsql;		
 
