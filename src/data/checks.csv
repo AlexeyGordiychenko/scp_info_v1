@@ -22,3 +22,8 @@ id,peer,task,date
 21,arbuzik,C6_s21_matrix,2023-04-15
 22,arbuzik,C7_SmartCalc_v1.0,2023-06-15
 23,arbuzik,C8_3DViewer_v1.0,2023-07-15
+24,tortik,DO1_Linux,2023-11-09
+25,tortik,DO2_LinuxNetwork,2023-11-09
+26,tortik,DO3_LinuxMonitoring_v1.0,2023-11-09
+27,tortik,DO5_SimpleDocker,2023-11-09
+28,tortik,DO6_CICD,2023-11-09
