@@ -125,3 +125,42 @@ GROUP BY peer
 ORDER BY points_change DESC;
 
 $$ LANGUAGE SQL;
+
+-- @block
+-- @conn school21
+-- Find the most frequently checked task for each day
+CREATE
+OR REPLACE FUNCTION fnc_most_frequently_checked_tasks() RETURNS TABLE(DAY VARCHAR, task VARCHAR) AS $$ WITH d AS (
+    SELECT SPLIT_PART(checks.task, '_', 1) AS task,
+        checks.date AS day,
+        COUNT(*) AS n
+    FROM checks
+        INNER JOIN (
+            SELECT "check"
+            FROM p2p
+            WHERE state = 'Start'
+            UNION
+            ALL
+            SELECT "check"
+            FROM verter
+            WHERE state = 'Start'
+        ) AS started_checks ON checks.id = started_checks.check
+    GROUP BY checks.date,
+        SPLIT_PART(checks.task, '_', 1)
+)
+SELECT TO_CHAR(day, 'DD.MM.YYYY'),
+    task
+FROM (
+        SELECT day,
+            task,
+            n,
+            RANK() OVER (
+                PARTITION BY day
+                ORDER BY n DESC
+            )
+        FROM d
+    ) AS r
+WHERE r.rank = 1
+ORDER BY day;
+
+$$ LANGUAGE SQL;
