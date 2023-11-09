@@ -199,3 +199,45 @@ WHERE completed_tasks = (
 ORDER BY day DESC;
 
 $$ LANGUAGE SQL;
+
+-- @block
+-- @conn school21
+-- Determine which peer each student should go to for a check
+CREATE
+OR REPLACE FUNCTION fnc_recommended_peer() RETURNS TABLE(peer VARCHAR, recommended_peer VARCHAR) AS $$ WITH f AS (
+    -- Peer and their friends
+    SELECT peer1 AS peer,
+        peer2 AS friend
+    FROM friends
+    UNION
+    SELECT peer2,
+        peer1
+    FROM friends
+),
+r AS (
+    -- All recommended peers
+    SELECT f.peer,
+        r.recommended_peer AS recommended_peer,
+        COUNT(*) AS n
+    FROM f
+        INNER JOIN recommendations AS r ON f.friend = r.peer
+    GROUP BY f.peer,
+        r.recommended_peer
+) -- Final querty to get peers and recommendations filtered by rank
+SELECT peer,
+    recommended_peer
+FROM (
+        -- Rank recommendations to find the most recommended
+        SELECT peer,
+            recommended_peer,
+            n,
+            RANK() OVER (
+                PARTITION BY peer
+                ORDER BY n DESC
+            )
+        FROM r
+    ) AS most_recommended
+WHERE most_recommended.rank = 1
+ORDER BY peer;
+
+$$ LANGUAGE SQL;
