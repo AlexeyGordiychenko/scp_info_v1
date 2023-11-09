@@ -164,3 +164,38 @@ WHERE r.rank = 1
 ORDER BY day;
 
 $$ LANGUAGE SQL;
+
+-- @block
+-- @conn school21
+-- Find all peers who have completed the whole given block of tasks and the
+-- completion date of the last task
+CREATE
+OR REPLACE FUNCTION fnc_completed_blocks(block VARCHAR) RETURNS TABLE(peer VARCHAR, day VARCHAR) AS $$ WITH block_tasks AS (
+    -- All tasks of a block
+    SELECT title
+    FROM tasks
+    WHERE SUBSTRING(
+            title
+            FROM '^[^0-9]*'
+        ) = block
+),
+peers AS (
+    -- Number of completed tasks and the max date of completion
+    SELECT peer,
+        MAX(date) AS day,
+        COUNT(DISTINCT task) AS completed_tasks
+    FROM checks
+        INNER JOIN block_tasks ON checks.task = block_tasks.title
+        INNER JOIN xp ON checks.id = xp.check
+    GROUP BY peer
+) -- Peers with number of completed tasks equal to number of tasks in a block
+SELECT peer,
+    TO_CHAR(day, 'DD.MM.YYYY')
+FROM peers
+WHERE completed_tasks = (
+        SELECT COUNT(*)
+        FROM block_tasks
+    )
+ORDER BY day DESC;
+
+$$ LANGUAGE SQL;
