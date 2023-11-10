@@ -338,3 +338,32 @@ SELECT ROUND(AVG(state) * 100, 2) AS successful_checks,
 FROM checks_on_bday;
 
 $$ LANGUAGE SQL;
+
+-- @block
+-- @conn school21
+-- Determine all peers who did the given tasks 1 and 2, but did not do task 3
+CREATE
+OR REPLACE FUNCTION fnc_peers_task1_task2_not_task3(task1 VARCHAR, task2 VARCHAR, task3 VARCHAR) RETURNS TABLE(peer VARCHAR) AS $$ WITH completed_tasks AS (
+    SELECT DISTINCT checks.peer,
+        checks.task
+    FROM xp
+        INNER JOIN checks ON xp.check = checks.id
+    WHERE checks.task IN (
+            task1,
+            task2,
+            task3
+        )
+)
+SELECT peer
+FROM completed_tasks
+WHERE task = task1
+INTERSECT
+SELECT peer
+FROM completed_tasks
+WHERE task = task2
+EXCEPT
+SELECT peer
+FROM completed_tasks
+WHERE task = task3;
+
+$$ LANGUAGE SQL;
