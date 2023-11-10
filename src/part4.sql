@@ -89,7 +89,8 @@ EXECUTE FUNCTION fnc_trg_person_check_age();
 ----------1) Создать хранимую процедуру, которая, не уничтожая базу данных, уничтожает все те таблицы текущей базы данных, имена которых начинаются с фразы 'table_name'.----------
 
 CREATE OR REPLACE PROCEDURE drop_tables_table_name() AS $drop_tables$
-	DECLARE tablename NAME;
+	DECLARE 
+		tablename NAME;
 		BEGIN
 			FOR tablename IN (SELECT table_name
 							  FROM information_schema.tables
@@ -129,12 +130,19 @@ DECLARE
 	END;
 $list_functions$ LANGUAGE plpgsql;
 
+SELECT routine_name, string_agg(parameter_name, ', ')
+FROM information_schema.routines r
+JOIN information_schema.parameters p ON r.specific_name = p.specific_name
+WHERE r.specific_schema = 'public' AND routine_type = 'FUNCTION'
+GROUP BY routine_name;
+
 CALL list_scalar_functions_and_parameters(NULL, NULL);
 
 ----------3) Создать хранимую процедуру с выходным параметром, которая уничтожает все SQL DML триггеры в текущей базе данных. Выходной параметр возвращает количество уничтоженных триггеров.----------
 
 CREATE OR REPLACE PROCEDURE drop_triggers (OUT count_triggers INTEGER)  AS $drop_triggers$
-	DECLARE triggername record;
+	DECLARE 
+		triggername record;
 		BEGIN
 			count_triggers := 0;
 			FOR triggername IN (SELECT trigger_name, event_object_table
@@ -148,6 +156,33 @@ $drop_triggers$ LANGUAGE plpgsql;
 
 
 SELECT trigger_name, event_object_table
-FROM information_schema.triggers
+FROM information_schema.triggers;
 
 CALL drop_triggers(NULL);
+
+----------4) Создать хранимую процедуру с входным параметром, которая выводит имена и описания типа объектов (только хранимых процедур и скалярных функций), в тексте которых на языке SQL встречается строка, задаваемая параметром процедуры.----------
+
+CREATE OR REPLACE PROCEDURE output_names_and_descriptions_of_object_types (IN pstring TEXT, OUT poutput TEXT)  AS $names_and_descriptions$
+	DECLARE 
+		routinename record;
+		BEGIN
+			poutput = '';
+			FOR routinename IN 
+			SELECT concat(routine_name, ': ', routine_type) AS list
+			FROM information_schema.routines
+			WHERE routine_schema = 'public' 
+				AND routine_definition LIKE concat('%', pstring, '%')
+				AND external_language = 'SQL'
+			LOOP							
+				poutput := concat(poutput, routinename.list, '; ');
+			END LOOP;
+		END;
+$names_and_descriptions$ LANGUAGE plpgsql;
+
+SELECT routine_name, routine_type
+FROM information_schema.routines
+WHERE routine_schema = 'public'
+	AND routine_definition LIKE '%pizz%'
+	AND external_language = 'SQL';
+
+CALL output_names_and_descriptions_of_object_types('pizz', NULL);
