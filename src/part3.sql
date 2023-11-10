@@ -308,3 +308,33 @@ SELECT (
 FROM all_peers;
 
 $$ LANGUAGE SQL;
+
+-- @block
+-- @conn school21
+-- Determine the percentage of peers who have ever successfully passed a check
+-- on their birthday
+CREATE
+OR REPLACE FUNCTION fnc_checks_on_bday() RETURNS TABLE(
+    successful_checks FLOAT,
+    unsuccessful_checks FLOAT
+) AS $$ WITH checks_on_bday AS (
+    SELECT checks.id,
+        CASE
+            WHEN p2p.state = 'Success'
+            AND COALESCE(verter.state, 'Success') = 'Success' THEN 1.0
+            ELSE 0.0
+        END AS state
+    FROM checks
+        INNER JOIN p2p ON checks.id = p2p.check
+        AND p2p.state <> 'Start'
+        LEFT JOIN verter ON checks.id = verter.check
+        AND verter.state <> 'Start'
+        INNER JOIN peers ON checks.peer = peers.nickname
+    WHERE DATE_PART('day', checks.date) = DATE_PART('day', peers.birthday)
+        AND DATE_PART('month', checks.date) = DATE_PART('month', peers.birthday)
+)
+SELECT ROUND(AVG(state) * 100, 2) AS successful_checks,
+    ROUND(AVG(1 - state) * 100, 2) AS unsuccessful_checks
+FROM checks_on_bday;
+
+$$ LANGUAGE SQL;
