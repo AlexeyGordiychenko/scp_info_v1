@@ -54,3 +54,7 @@ id,check,checking_peer,state,time
 53,27,morozhenka,Success,04:50:20
 54,28,pirozhok,Start,05:40:20
 55,28,pirozhok,Success,06:00:20
+56,29,pechenca,Start,14:14:14
+57,29,pechenca,Success,15:15:15
+58,30,pechenca,Start,14:14:14
+59,30,pechenca,Success,15:15:15

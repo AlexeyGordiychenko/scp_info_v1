@@ -241,3 +241,70 @@ WHERE most_recommended.rank = 1
 ORDER BY peer;
 
 $$ LANGUAGE SQL;
+
+-- @block
+-- @conn school21
+-- Determine the percentage of peers who:
+--     Started only block 1
+--     Started only block 2
+--     Started both
+--     Have not started any of them
+CREATE
+OR REPLACE FUNCTION fnc_percentage_peers_blocks(block1 VARCHAR, block2 VARCHAR) RETURNS TABLE(
+    StartedBlock1 FLOAT,
+    StartedBlock2 FLOAT,
+    StartedBothBlocks FLOAT,
+    DidntStartAnyBlock FLOAT
+) AS $$ WITH blocks_tasks AS (
+    -- Info about peers, number of blocks and block's name if it's the only
+    -- block
+    SELECT peer,
+        COUNT(DISTINCT block) AS blocks_count,
+        MAX(block) max_block
+    FROM (
+            SELECT peer,
+                SUBSTRING(
+                    task
+                    FROM '^[^0-9]*'
+                ) AS block
+            FROM checks
+        ) AS blocks
+    WHERE block IN (block1, block2)
+    GROUP BY peer
+),
+all_peers AS (
+    -- Total number of peers (with division by 100 for the percent calculation
+    -- later)
+    SELECT COUNT(*)::float / 100 AS peers_count
+    FROM peers
+)
+SELECT (
+        -- Started only block 1
+        SELECT COUNT(*)
+        FROM blocks_tasks
+        WHERE blocks_count = 1
+            AND max_block = block1
+    ) / peers_count AS block1,
+    (
+        -- Started only block 2
+        SELECT COUNT(*)
+        FROM blocks_tasks
+        WHERE blocks_count = 1
+            AND max_block = block2
+    ) / peers_count AS block2,
+    (
+        -- Started both blocks
+        SELECT COUNT(*)
+        FROM blocks_tasks
+        WHERE blocks_count = 2
+    ) / peers_count AS block_both,
+    (
+        -- Have not started any of the blocks
+        SELECT COUNT(*)
+        FROM peers
+            LEFT JOIN blocks_tasks ON nickname = peer
+        WHERE peer IS NULL
+    ) / peers_count AS other
+FROM all_peers;
+
+$$ LANGUAGE SQL;
