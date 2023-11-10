@@ -30,3 +30,15 @@ id,peer,task,date
 29,marmeladka,DO1_Linux,2023-02-09
 30,tartaletka,DO1_Linux,2023-02-09
 31,tartaletka,DO2_LinuxNetwork,2023-03-01
+32,arbuzik,CPP1_s21_matrix+,2023-08-20
+33,keksik,C6_s21_matrix,2023-08-20
+34,konfetka,C4_s21_math,2023-08-20
+35,marmeladka,CPP1_s21_matrix+,2023-08-20
+36,pechenca,C6_s21_matrix,2023-08-20
+37,pirozhok,C3_s21_string+,2023-08-20
+38,arbuzik,CPP2_containers,2023-09-29
+39,keksik,C7_SmartCalc_v1.0,2023-09-29
+40,konfetka,C4_s21_math,2023-09-29
+41,marmeladka,CPP2_containers,2023-09-29
+42,pechenca,C7_SmartCalc_v1.0,2023-09-29
+43,pirozhok,C5_s21_decimal,2023-09-29
