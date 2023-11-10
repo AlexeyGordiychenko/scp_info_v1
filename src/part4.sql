@@ -58,14 +58,42 @@ $$ LANGUAGE SQL;
 SELECT *
 FROM fnc_pizzeria_min_raiting();
 
+CREATE OR REPLACE FUNCTION fnc_trg_pizzeria_insert() RETURNS TRIGGER AS $pizzeria_insert$
+	BEGIN
+		IF NEW.raiting > 5.0
+		THEN RAISE EXCEPTION 'The raiting cannot be higher than 5.0';
+		END IF;
+    RETURN NEW; 
+    END;
+$pizzeria_insert$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_pizzeria_insert
+BEFORE INSERT ON table_name_pizzeria
+FOR EACH ROW 
+EXECUTE FUNCTION fnc_trg_pizzeria_insert();
+
+CREATE OR REPLACE FUNCTION fnc_trg_person_check_age() RETURNS TRIGGER AS $person_check_age$
+	BEGIN
+		IF NEW.age < 14
+		THEN RAISE EXCEPTION 'The age must be over 14';
+		END IF;
+    RETURN NEW; 
+    END;
+$person_check_age$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_person_check_age
+BEFORE INSERT ON person
+FOR EACH ROW 
+EXECUTE FUNCTION fnc_trg_person_check_age();
+
 ----------1) Создать хранимую процедуру, которая, не уничтожая базу данных, уничтожает все те таблицы текущей базы данных, имена которых начинаются с фразы 'table_name'.----------
 
 CREATE OR REPLACE PROCEDURE drop_tables_table_name() AS $drop_tables$
 	DECLARE tablename NAME;
 		BEGIN
 			FOR tablename IN (SELECT table_name
-									FROM information_schema.tables
-									WHERE table_name LIKE 'table_name%')
+							  FROM information_schema.tables
+							  WHERE table_name LIKE 'table_name%')
 			LOOP							
 			EXECUTE concat('DROP TABLE IF EXISTS ', tablename, ' CASCADE;');
 			END LOOP;
@@ -102,3 +130,24 @@ DECLARE
 $list_functions$ LANGUAGE plpgsql;
 
 CALL list_scalar_functions_and_parameters(NULL, NULL);
+
+----------3) Создать хранимую процедуру с выходным параметром, которая уничтожает все SQL DML триггеры в текущей базе данных. Выходной параметр возвращает количество уничтоженных триггеров.----------
+
+CREATE OR REPLACE PROCEDURE drop_triggers (OUT count_triggers INTEGER)  AS $drop_triggers$
+	DECLARE triggername record;
+		BEGIN
+			count_triggers := 0;
+			FOR triggername IN (SELECT trigger_name, event_object_table
+								FROM information_schema.triggers)
+			LOOP							
+				EXECUTE concat('DROP TRIGGER IF EXISTS ', triggername.trigger_name, ' ON ', triggername.event_object_table, ' CASCADE;');
+				count_triggers := count_triggers +1;
+			END LOOP;
+		END;
+$drop_triggers$ LANGUAGE plpgsql;
+
+
+SELECT trigger_name, event_object_table
+FROM information_schema.triggers
+
+CALL drop_triggers(NULL);
