@@ -367,3 +367,30 @@ FROM completed_tasks
 WHERE task = task3;
 
 $$ LANGUAGE SQL;
+
+-- @block
+-- @conn school21
+-- Using recursive common table expression, output the number of preceding tasks
+-- for each task
+CREATE
+OR REPLACE FUNCTION fnc_preceding_tasks() RETURNS TABLE(task VARCHAR, prev_count INT) AS $$ WITH RECURSIVE preceding_tasks AS (
+    -- Initial part
+    SELECT title,
+        parent_task,
+        0 AS prev_count
+    FROM tasks
+    WHERE parent_task IS NULL
+    UNION
+    ALL -- Recursive part
+    SELECT tasks.title,
+        tasks.parent_task,
+        preceding_tasks.prev_count + 1
+    FROM tasks
+        INNER JOIN preceding_tasks ON tasks.parent_task = preceding_tasks.title
+)
+SELECT SPLIT_PART(title, '_', 1),
+    prev_count
+FROM preceding_tasks
+ORDER BY prev_count;
+
+$$ LANGUAGE SQL;
