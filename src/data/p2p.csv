@@ -58,3 +58,5 @@ id,check,checking_peer,state,time
 57,29,pechenca,Success,15:15:15
 58,30,pechenca,Start,14:14:14
 59,30,pechenca,Success,15:15:15
+60,31,pechenca,Start,14:14:14
+61,31,pechenca,Failure,15:15:15
