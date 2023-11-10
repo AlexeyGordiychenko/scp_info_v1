@@ -394,3 +394,67 @@ FROM preceding_tasks
 ORDER BY prev_count;
 
 $$ LANGUAGE SQL;
+
+-- @block
+-- @conn school21
+-- Find "lucky" days for checks. A day is considered "lucky" if it has at least
+-- N consecutive successful checks
+CREATE
+OR REPLACE PROCEDURE prd_lucky_days(n INT, ref refcursor) LANGUAGE plpgsql AS $$
+BEGIN IF n <= 0 THEN OPEN ref FOR
+SELECT
+WHERE FALSE;
+
+ELSE OPEN ref FOR WITH checks_data AS (
+    -- All successful and failed checks with
+    --    id, date and time
+    --    status 1-success, 0-fail
+    -- Failes tasks are those with either:
+    --    failed p2p
+    --    failed verter or no verter
+    --    xp on successful check < 80%
+    SELECT checks.id,
+        checks.date,
+        MIN(p2p_start.time) AS time,
+        MIN(
+            CASE
+                WHEN p2p_result.state = 'Success'
+                AND COALESCE(verter.state, 'Success') = 'Success'
+                AND CASE
+                    WHEN xp.xp_amount = 0 THEN 0
+                    ELSE COALESCE(xp.xp_amount, 0)::float / tasks.max_xp
+                END >= 0.8 THEN 1
+                ELSE 0
+            END
+        ) AS state
+    FROM checks
+        INNER JOIN p2p AS p2p_start ON checks.id = p2p_start.check
+        AND p2p_start.state = 'Start'
+        INNER JOIN p2p AS p2p_result ON checks.id = p2p_result.check
+        AND p2p_result.state <> 'Start'
+        LEFT JOIN verter ON checks.id = verter.check
+        AND verter.state <> 'Start'
+        LEFT JOIN xp ON checks.id = xp.check
+        INNER JOIN tasks ON checks.task = tasks.title
+    GROUP BY checks.id,
+        checks.date
+    ORDER BY checks.date,
+        time
+) -- Calculating sum of states (1 or 0) of N number of rows starting from current
+-- Filter those rows which has sum of states equal to N (consecutive passes)
+SELECT DISTINCT date
+FROM (
+        SELECT date,
+            SUM(state) OVER (
+                PARTITION BY date
+                ORDER BY time ROWS BETWEEN n -1 PRECEDING AND CURRENT ROW
+            ) as sum_state
+        FROM checks_data
+    ) AS d
+WHERE sum_state = n;
+
+END IF;
+
+END;
+
+$$;

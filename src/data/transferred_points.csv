@@ -7,7 +7,7 @@ id,checking_peer,checked_peer,points_amount
 6,konfetka,pechenca,0
 7,konfetka,morozhenka,1
 8,konfetka,arbuzik,1
-9,pechenca,marmeladka,2
+9,pechenca,marmeladka,4
 10,pechenca,konfetka,0
 11,pechenca,morozhenka,0
 12,pechenca,arbuzik,2
@@ -17,7 +17,7 @@ id,checking_peer,checked_peer,points_amount
 16,morozhenka,arbuzik,1
 17,arbuzik,marmeladka,2
 18,arbuzik,konfetka,1
-19,arbuzik,pechenca,0
+19,arbuzik,pechenca,2
 20,arbuzik,morozhenka,0
 21,tortik,pirozhok,1
 22,pirozhok,tortik,3
@@ -25,7 +25,7 @@ id,checking_peer,checked_peer,points_amount
 24,tortik,marmeladka,1
 25,pirozhok,marmeladka,1
 26,keksik,marmeladka,1
-27,tortik,arbuzik,1
+27,tortik,arbuzik,3
 28,pirozhok,arbuzik,1
 29,keksik,arbuzik,1
 30,pechenca,tortik,1
@@ -33,3 +33,6 @@ id,checking_peer,checked_peer,points_amount
 32,arbuzik,tortik,1
 33,morozhenka,tortik,1
 34,pechenca,tartaletka,2
+35,tartaletka,keksik,2
+36,pirozhok,konfetka,2
+37,keksik,pirozhok,2
