@@ -473,3 +473,21 @@ ORDER BY XP DESC
 LIMIT 1;
 
 $$ LANGUAGE SQL;
+
+-- @block
+-- @conn school21
+-- Determine the peers that came before the given time at least N times during
+-- the whole time
+CREATE
+OR REPLACE PROCEDURE prd_peers_arrival(ptime TIME, pn INT, ref refcursor) LANGUAGE plpgsql AS $$
+BEGIN OPEN ref FOR
+SELECT peer
+FROM time_tracking
+WHERE time < ptime
+    AND state = 1
+GROUP BY peer
+HAVING COUNT(DISTINCT date) >= pn;
+
+END;
+
+$$;
