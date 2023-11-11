@@ -458,3 +458,18 @@ END IF;
 END;
 
 $$;
+
+-- @block
+-- @conn school21
+-- Find the peer with the highest amount of XP
+CREATE
+OR REPLACE FUNCTION fnc_highest_xp() RETURNS TABLE(task VARCHAR, prev_count INT) AS $$
+SELECT peer,
+    SUM(xp_amount) AS XP
+FROM xp
+    INNER JOIN checks ON xp.check = checks.id
+GROUP BY peer
+ORDER BY XP DESC
+LIMIT 1;
+
+$$ LANGUAGE SQL;
