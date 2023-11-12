@@ -491,3 +491,22 @@ HAVING COUNT(DISTINCT date) >= pn;
 END;
 
 $$;
+
+-- @block
+-- @conn school21
+--Determine the peers who left the campus more than M times during the last N
+--days
+CREATE
+OR REPLACE PROCEDURE prd_peers_leave(pn INT, pm INT, ref refcursor) LANGUAGE plpgsql AS $$
+BEGIN OPEN ref FOR
+SELECT peer
+FROM time_tracking
+WHERE date >= CURRENT_DATE - interval '1 day' * pn
+    AND state = 2
+GROUP BY peer
+HAVING COUNT(*) > pm
+ORDER BY peer;
+
+END;
+
+$$;
