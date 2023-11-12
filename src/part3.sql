@@ -40,7 +40,9 @@ FROM transfer_sum AS t1
     ON t1.checking_peer = t2.checked_peer
     AND t1.checked_peer = t2.checking_peer
     AND t1.checked_peer = t2.checking_peer
-WHERE t1.points_amount - COALESCE(t2.points_amount, 0) <> 0;
+WHERE t1.points_amount - COALESCE(t2.points_amount, 0) <> 0
+ORDER BY t1.checking_peer,
+    t1.checked_peer;
 
 $$ LANGUAGE SQL;
 
@@ -50,7 +52,7 @@ $$ LANGUAGE SQL;
 -- name of the checked task, number of XP received
 CREATE
 OR REPLACE FUNCTION fnc_checked_tasks_xp() RETURNS TABLE(
-    peer1 VARCHAR,
+    peer VARCHAR,
     task VARCHAR,
     XP INTEGER
 ) AS $$
@@ -191,7 +193,7 @@ BEGIN OPEN ref FOR WITH block_tasks AS (
         GROUP BY peer
     ) -- Peers with number of completed tasks equal to number of tasks in a block
 SELECT peer,
-    TO_CHAR(day, 'DD.MM.YYYY')
+    TO_CHAR(day, 'DD.MM.YYYY') AS day
 FROM peers
 WHERE completed_tasks = (
         SELECT COUNT(*)
@@ -274,37 +276,43 @@ BEGIN OPEN ref FOR WITH blocks_tasks AS (
     all_peers AS (
         -- Total number of peers (with division by 100 for the percent calculation
         -- later)
-        SELECT COUNT(*)::float / 100 AS peers_count
+        SELECT COUNT(*)::numeric / 100 AS peers_count
         FROM peers
     )
-SELECT (
-        -- Started only block 1
-        SELECT COUNT(*)
-        FROM blocks_tasks
-        WHERE blocks_count = 1
-            AND max_block = block1
-    ) / peers_count AS block1,
-    (
-        -- Started only block 2
-        SELECT COUNT(*)
-        FROM blocks_tasks
-        WHERE blocks_count = 1
-            AND max_block = block2
-    ) / peers_count AS block2,
-    (
-        -- Started both blocks
-        SELECT COUNT(*)
-        FROM blocks_tasks
-        WHERE blocks_count = 2
-    ) / peers_count AS block_both,
-    (
-        -- Have not started any of the blocks
-        SELECT COUNT(*)
-        FROM peers
-            LEFT JOIN blocks_tasks ON nickname = peer
-        WHERE peer IS NULL
-    ) / peers_count AS other
-FROM all_peers;
+SELECT ROUND(started_block1, 2) AS started_block1,
+    ROUND(started_block2, 2) AS started_block2,
+    ROUND(started_both_blocks, 2) AS started_both_blocks,
+    ROUND(didnt_start_any_block, 2) AS didnt_start_any_block
+FROM (
+        SELECT (
+                -- Started only block 1
+                SELECT COUNT(*)
+                FROM blocks_tasks
+                WHERE blocks_count = 1
+                    AND max_block = block1
+            ) / peers_count AS started_block1,
+            (
+                -- Started only block 2
+                SELECT COUNT(*)
+                FROM blocks_tasks
+                WHERE blocks_count = 1
+                    AND max_block = block2
+            ) / peers_count AS started_block2,
+            (
+                -- Started both blocks
+                SELECT COUNT(*)
+                FROM blocks_tasks
+                WHERE blocks_count = 2
+            ) / peers_count AS started_both_blocks,
+            (
+                -- Have not started any of the blocks
+                SELECT COUNT(*)
+                FROM peers
+                    LEFT JOIN blocks_tasks ON nickname = peer
+                WHERE peer IS NULL
+            ) / peers_count AS didnt_start_any_block
+        FROM all_peers
+    ) AS blocks;
 
 END;
 
@@ -371,7 +379,8 @@ WHERE task = task2
 EXCEPT
 SELECT peer
 FROM completed_tasks
-WHERE task = task3;
+WHERE task = task3
+ORDER BY peer;
 
 END;
 
@@ -472,7 +481,7 @@ $$;
 -- @conn school21
 -- 3.14 Find the peer with the highest amount of XP
 CREATE
-OR REPLACE FUNCTION fnc_highest_xp() RETURNS TABLE(task VARCHAR, prev_count INT) AS $$
+OR REPLACE FUNCTION fnc_highest_xp() RETURNS TABLE(peer VARCHAR, xp INT) AS $$
 SELECT peer,
     SUM(xp_amount) AS XP
 FROM xp
