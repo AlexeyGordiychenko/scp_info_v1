@@ -510,3 +510,31 @@ ORDER BY peer;
 END;
 
 $$;
+
+-- @block
+-- @conn school21
+-- Determine for each month the percentage of early entries
+CREATE
+OR REPLACE FUNCTION fnc_percentage_of_early_entries() RETURNS TABLE(month VARCHAR, early_entries FLOAT) AS $$
+SELECT TO_CHAR(TO_DATE(month::text, 'MM'), 'Month'),
+    ROUND(AVG(early_entry) * 100, 2) AS early_entries
+FROM(
+        SELECT EXTRACT(
+                MONTH
+                FROM tt.date
+            ) AS month,
+            CASE
+                WHEN MIN(tt.time) < '12:00:00' THEN 1
+                ELSE 0
+            END AS early_entry
+        FROM time_tracking AS tt
+            INNER JOIN peers AS p ON tt.peer = p.nickname
+        WHERE tt.state = 1
+            AND DATE_PART('month', tt.date) = DATE_PART('month', p.birthday)
+        GROUP BY tt.date,
+            tt.peer
+    ) AS d
+GROUP BY month
+ORDER BY month;
+
+$$ LANGUAGE SQL;
