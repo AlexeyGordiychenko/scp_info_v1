@@ -170,25 +170,26 @@ $$ LANGUAGE SQL;
 -- 3.7 Find all peers who have completed the whole given block of tasks and the
 -- completion date of the last task
 CREATE
-OR REPLACE FUNCTION fnc_completed_blocks(block VARCHAR) RETURNS TABLE(peer VARCHAR, day VARCHAR) AS $$ WITH block_tasks AS (
-    -- All tasks of a block
-    SELECT title
-    FROM tasks
-    WHERE SUBSTRING(
-            title
-            FROM '^[^0-9]*'
-        ) = block
-),
-peers AS (
-    -- Number of completed tasks and the max date of completion
-    SELECT peer,
-        MAX(date) AS day,
-        COUNT(DISTINCT task) AS completed_tasks
-    FROM checks
-        INNER JOIN block_tasks ON checks.task = block_tasks.title
-        INNER JOIN xp ON checks.id = xp.check
-    GROUP BY peer
-) -- Peers with number of completed tasks equal to number of tasks in a block
+OR REPLACE PROCEDURE prd_completed_blocks(block VARCHAR, ref refcursor) LANGUAGE plpgsql AS $$
+BEGIN OPEN ref FOR WITH block_tasks AS (
+        -- All tasks of a block
+        SELECT title
+        FROM tasks
+        WHERE SUBSTRING(
+                title
+                FROM '^[^0-9]*'
+            ) = block
+    ),
+    peers AS (
+        -- Number of completed tasks and the max date of completion
+        SELECT peer,
+            MAX(date) AS day,
+            COUNT(DISTINCT task) AS completed_tasks
+        FROM checks
+            INNER JOIN block_tasks ON checks.task = block_tasks.title
+            INNER JOIN xp ON checks.id = xp.check
+        GROUP BY peer
+    ) -- Peers with number of completed tasks equal to number of tasks in a block
 SELECT peer,
     TO_CHAR(day, 'DD.MM.YYYY')
 FROM peers
@@ -198,7 +199,9 @@ WHERE completed_tasks = (
     )
 ORDER BY day DESC;
 
-$$ LANGUAGE SQL;
+END;
+
+$$;
 
 -- @block
 -- @conn school21
@@ -250,34 +253,30 @@ $$ LANGUAGE SQL;
 --     Started both
 --     Have not started any of them
 CREATE
-OR REPLACE FUNCTION fnc_percentage_peers_blocks(block1 VARCHAR, block2 VARCHAR) RETURNS TABLE(
-    StartedBlock1 FLOAT,
-    StartedBlock2 FLOAT,
-    StartedBothBlocks FLOAT,
-    DidntStartAnyBlock FLOAT
-) AS $$ WITH blocks_tasks AS (
-    -- Info about peers, number of blocks and block's name if it's the only
-    -- block
-    SELECT peer,
-        COUNT(DISTINCT block) AS blocks_count,
-        MAX(block) max_block
-    FROM (
-            SELECT peer,
-                SUBSTRING(
-                    task
-                    FROM '^[^0-9]*'
-                ) AS block
-            FROM checks
-        ) AS blocks
-    WHERE block IN (block1, block2)
-    GROUP BY peer
-),
-all_peers AS (
-    -- Total number of peers (with division by 100 for the percent calculation
-    -- later)
-    SELECT COUNT(*)::float / 100 AS peers_count
-    FROM peers
-)
+OR REPLACE PROCEDURE prd_percentage_peers_blocks(block1 VARCHAR, block2 VARCHAR, ref refcursor) LANGUAGE plpgsql AS $$
+BEGIN OPEN ref FOR WITH blocks_tasks AS (
+        -- Info about peers, number of blocks and block's name if it's the only
+        -- block
+        SELECT peer,
+            COUNT(DISTINCT block) AS blocks_count,
+            MAX(block) max_block
+        FROM (
+                SELECT peer,
+                    SUBSTRING(
+                        task
+                        FROM '^[^0-9]*'
+                    ) AS block
+                FROM checks
+            ) AS blocks
+        WHERE block IN (block1, block2)
+        GROUP BY peer
+    ),
+    all_peers AS (
+        -- Total number of peers (with division by 100 for the percent calculation
+        -- later)
+        SELECT COUNT(*)::float / 100 AS peers_count
+        FROM peers
+    )
 SELECT (
         -- Started only block 1
         SELECT COUNT(*)
@@ -307,7 +306,9 @@ SELECT (
     ) / peers_count AS other
 FROM all_peers;
 
-$$ LANGUAGE SQL;
+END;
+
+$$;
 
 -- @block
 -- @conn school21
@@ -343,17 +344,23 @@ $$ LANGUAGE SQL;
 -- @conn school21
 -- 3.11 Determine all peers who did the given tasks 1 and 2, but did not do task 3
 CREATE
-OR REPLACE FUNCTION fnc_peers_task1_task2_not_task3(task1 VARCHAR, task2 VARCHAR, task3 VARCHAR) RETURNS TABLE(peer VARCHAR) AS $$ WITH completed_tasks AS (
-    SELECT DISTINCT checks.peer,
-        checks.task
-    FROM xp
-        INNER JOIN checks ON xp.check = checks.id
-    WHERE checks.task IN (
-            task1,
-            task2,
-            task3
-        )
-)
+OR REPLACE PROCEDURE prd_peers_task1_task2_not_task3(
+    task1 VARCHAR,
+    task2 VARCHAR,
+    task3 VARCHAR,
+    ref refcursor
+) LANGUAGE plpgsql AS $$
+BEGIN OPEN ref FOR WITH completed_tasks AS (
+        SELECT DISTINCT checks.peer,
+            checks.task
+        FROM xp
+            INNER JOIN checks ON xp.check = checks.id
+        WHERE checks.task IN (
+                task1,
+                task2,
+                task3
+            )
+    )
 SELECT peer
 FROM completed_tasks
 WHERE task = task1
@@ -366,7 +373,9 @@ SELECT peer
 FROM completed_tasks
 WHERE task = task3;
 
-$$ LANGUAGE SQL;
+END;
+
+$$;
 
 -- @block
 -- @conn school21
