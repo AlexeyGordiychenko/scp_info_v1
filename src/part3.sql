@@ -1,6 +1,6 @@
 -- @block
 -- @conn school21
--- Write a function that returns the TransferredPoints table in a more
+-- 3.1 Write a function that returns the TransferredPoints table in a more
 -- human-readable form
 CREATE
 OR REPLACE FUNCTION fnc_transferred_points() RETURNS TABLE(
@@ -46,8 +46,8 @@ $$ LANGUAGE SQL;
 
 -- @block
 -- @conn school21
--- Write a function that returns a table of the following form: user name, name
--- of the checked task, number of XP received
+-- 3.2 Write a function that returns a table of the following form: user name,
+-- name of the checked task, number of XP received
 CREATE
 OR REPLACE FUNCTION fnc_checked_tasks_xp() RETURNS TABLE(
     peer1 VARCHAR,
@@ -66,8 +66,8 @@ $$ LANGUAGE SQL;
 
 -- @block
 -- @conn school21
--- Write a function that finds the peers who have not left campus for the whole
--- day
+-- 3.3 Write a function that finds the peers who have not left campus for the
+-- whole day
 CREATE
 OR REPLACE FUNCTION fnc_peers_all_day_in_campus(pdate DATE) RETURNS TABLE(peer VARCHAR) AS $$
 SELECT peer
@@ -82,7 +82,7 @@ $$ LANGUAGE SQL;
 
 -- @block
 -- @conn school21
--- Calculate the change in the number of peer points of each peer using the
+-- 3.4 Calculate the change in the number of peer points of each peer using the
 -- TransferredPoints table
 CREATE
 OR REPLACE FUNCTION fnc_points_change() RETURNS TABLE(peer VARCHAR, points_change INTEGER) AS $$
@@ -105,7 +105,7 @@ $$ LANGUAGE SQL;
 
 -- @block
 -- @conn school21
--- Calculate the change in the number of peer points of each peer using the
+-- 3.5 Calculate the change in the number of peer points of each peer using the
 -- table returned by the first function
 CREATE
 OR REPLACE FUNCTION fnc_points_change2() RETURNS TABLE(peer VARCHAR, points_change INTEGER) AS $$
@@ -128,7 +128,7 @@ $$ LANGUAGE SQL;
 
 -- @block
 -- @conn school21
--- Find the most frequently checked task for each day
+-- 3.6 Find the most frequently checked task for each day
 CREATE
 OR REPLACE FUNCTION fnc_most_frequently_checked_tasks() RETURNS TABLE(DAY VARCHAR, task VARCHAR) AS $$ WITH d AS (
     SELECT SPLIT_PART(checks.task, '_', 1) AS task,
@@ -167,7 +167,7 @@ $$ LANGUAGE SQL;
 
 -- @block
 -- @conn school21
--- Find all peers who have completed the whole given block of tasks and the
+-- 3.7 Find all peers who have completed the whole given block of tasks and the
 -- completion date of the last task
 CREATE
 OR REPLACE FUNCTION fnc_completed_blocks(block VARCHAR) RETURNS TABLE(peer VARCHAR, day VARCHAR) AS $$ WITH block_tasks AS (
@@ -202,7 +202,7 @@ $$ LANGUAGE SQL;
 
 -- @block
 -- @conn school21
--- Determine which peer each student should go to for a check
+-- 3.8 Determine which peer each student should go to for a check
 CREATE
 OR REPLACE FUNCTION fnc_recommended_peer() RETURNS TABLE(peer VARCHAR, recommended_peer VARCHAR) AS $$ WITH f AS (
     -- Peer and their friends
@@ -244,7 +244,7 @@ $$ LANGUAGE SQL;
 
 -- @block
 -- @conn school21
--- Determine the percentage of peers who:
+-- 3.9 Determine the percentage of peers who:
 --     Started only block 1
 --     Started only block 2
 --     Started both
@@ -311,8 +311,8 @@ $$ LANGUAGE SQL;
 
 -- @block
 -- @conn school21
--- Determine the percentage of peers who have ever successfully passed a check
--- on their birthday
+-- 3.10 Determine the percentage of peers who have ever successfully passed a
+-- check on their birthday
 CREATE
 OR REPLACE FUNCTION fnc_checks_on_bday() RETURNS TABLE(
     successful_checks FLOAT,
@@ -341,7 +341,7 @@ $$ LANGUAGE SQL;
 
 -- @block
 -- @conn school21
--- Determine all peers who did the given tasks 1 and 2, but did not do task 3
+-- 3.11 Determine all peers who did the given tasks 1 and 2, but did not do task 3
 CREATE
 OR REPLACE FUNCTION fnc_peers_task1_task2_not_task3(task1 VARCHAR, task2 VARCHAR, task3 VARCHAR) RETURNS TABLE(peer VARCHAR) AS $$ WITH completed_tasks AS (
     SELECT DISTINCT checks.peer,
@@ -370,8 +370,8 @@ $$ LANGUAGE SQL;
 
 -- @block
 -- @conn school21
--- Using recursive common table expression, output the number of preceding tasks
--- for each task
+-- 3.12 Using recursive common table expression, output the number of preceding
+-- tasks for each task
 CREATE
 OR REPLACE FUNCTION fnc_preceding_tasks() RETURNS TABLE(task VARCHAR, prev_count INT) AS $$ WITH RECURSIVE preceding_tasks AS (
     -- Initial part
@@ -397,8 +397,8 @@ $$ LANGUAGE SQL;
 
 -- @block
 -- @conn school21
--- Find "lucky" days for checks. A day is considered "lucky" if it has at least
--- N consecutive successful checks
+-- 3.13 Find "lucky" days for checks. A day is considered "lucky" if it has at
+-- least N consecutive successful checks
 CREATE
 OR REPLACE PROCEDURE prd_lucky_days(n INT, ref refcursor) LANGUAGE plpgsql AS $$
 BEGIN IF n <= 0 THEN OPEN ref FOR
@@ -461,7 +461,7 @@ $$;
 
 -- @block
 -- @conn school21
--- Find the peer with the highest amount of XP
+-- 3.14 Find the peer with the highest amount of XP
 CREATE
 OR REPLACE FUNCTION fnc_highest_xp() RETURNS TABLE(task VARCHAR, prev_count INT) AS $$
 SELECT peer,
@@ -476,8 +476,8 @@ $$ LANGUAGE SQL;
 
 -- @block
 -- @conn school21
--- Determine the peers that came before the given time at least N times during
--- the whole time
+-- 3.15 Determine the peers that came before the given time at least N times
+-- during the whole time
 CREATE
 OR REPLACE PROCEDURE prd_peers_arrival(ptime TIME, pn INT, ref refcursor) LANGUAGE plpgsql AS $$
 BEGIN OPEN ref FOR
@@ -494,8 +494,8 @@ $$;
 
 -- @block
 -- @conn school21
---Determine the peers who left the campus more than M times during the last N
---days
+--3.16 Determine the peers who left the campus more than M times during the last
+--N days
 CREATE
 OR REPLACE PROCEDURE prd_peers_leave(pn INT, pm INT, ref refcursor) LANGUAGE plpgsql AS $$
 BEGIN OPEN ref FOR
@@ -513,7 +513,7 @@ $$;
 
 -- @block
 -- @conn school21
--- Determine for each month the percentage of early entries
+-- 3.17 Determine for each month the percentage of early entries
 CREATE
 OR REPLACE FUNCTION fnc_percentage_of_early_entries() RETURNS TABLE(month VARCHAR, early_entries FLOAT) AS $$
 SELECT TO_CHAR(TO_DATE(month::text, 'MM'), 'Month'),
