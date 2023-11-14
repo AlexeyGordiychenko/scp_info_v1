@@ -22,18 +22,16 @@ CREATE TABLE table_name_pizzeria
 
 CREATE OR REPLACE PROCEDURE import_data 
 	(IN table_name VARCHAR, IN file_path TEXT, IN separator CHAR) AS $import$
-		BEGIN
-			EXECUTE format('COPY %s FROM ''%s'' DELIMITER ''%s'' CSV HEADER;', table_name, file_path, separator);
-		END;
-$import$ LANGUAGE plpgsql;	
+		EXECUTE format('COPY %s FROM ''%s'' DELIMITER ''%s'' CSV HEADER;', table_name, file_path, separator);
+$import$ LANGUAGE sql;	
 
 CALL import_data ('person', '/tmp/person.csv', ',');
 CALL import_data ('table_name_menu', '/tmp/table_name_menu.csv', ',');
 CALL import_data ('table_name_pizzeria', '/tmp/table_name_pizzeria.csv', ',');
 
 
-CREATE OR REPLACE FUNCTION fnc_gender(IN pgender VARCHAR DEFAULT 'female', IN page INTEGER DEFAULT 18) RETURNS SETOF person AS $$
-SELECT *
+CREATE OR REPLACE FUNCTION fnc_gender(IN pgender VARCHAR DEFAULT 'female', IN page INTEGER DEFAULT 18) RETURNS INTEGER AS $$
+SELECT COUNT(name)
 FROM person
 WHERE gender = pgender AND age >= page;
 $$ LANGUAGE SQL;
@@ -121,7 +119,9 @@ DECLARE
 		SELECT concat(routine_name, ': ', string_agg(parameter_name, ', ')) AS list
 			FROM information_schema.routines r
 			JOIN information_schema.parameters p ON r.specific_name = p.specific_name
-			WHERE r.specific_schema = 'public' AND routine_type = 'FUNCTION'
+			JOIN pg_proc pr ON r.routine_name = pr.proname
+			WHERE r.specific_schema = 'public' 
+				AND routine_type = 'FUNCTION' AND proretset = 'false'
 			GROUP BY routine_name
 		LOOP
 		count_functions := count_functions + 1;
@@ -133,7 +133,8 @@ $list_functions$ LANGUAGE plpgsql;
 SELECT routine_name, string_agg(parameter_name, ', ')
 FROM information_schema.routines r
 JOIN information_schema.parameters p ON r.specific_name = p.specific_name
-WHERE r.specific_schema = 'public' AND routine_type = 'FUNCTION'
+JOIN pg_proc pr ON r.routine_name = pr.proname
+WHERE r.specific_schema = 'public' AND routine_type = 'FUNCTION' AND proretset = 'false'
 GROUP BY routine_name;
 
 CALL list_scalar_functions_and_parameters(NULL, NULL);
@@ -154,7 +155,6 @@ CREATE OR REPLACE PROCEDURE drop_triggers (OUT count_triggers INTEGER)  AS $drop
 		END;
 $drop_triggers$ LANGUAGE plpgsql;
 
-
 SELECT trigger_name, event_object_table
 FROM information_schema.triggers;
 
@@ -169,10 +169,12 @@ CREATE OR REPLACE PROCEDURE output_names_and_descriptions_of_object_types (IN ps
 			poutput = '';
 			FOR routinename IN 
 			SELECT concat(routine_name, ': ', routine_type) AS list
-			FROM information_schema.routines
+			FROM information_schema.routines r
+			JOIN pg_proc pr ON r.routine_name = pr.proname
 			WHERE routine_schema = 'public' 
 				AND routine_definition LIKE concat('%', pstring, '%')
-				AND external_language = 'SQL'
+				AND external_language = 'SQL' 
+				AND proretset = 'false'
 			LOOP							
 				poutput := concat(poutput, routinename.list, '; ');
 			END LOOP;
@@ -180,9 +182,11 @@ CREATE OR REPLACE PROCEDURE output_names_and_descriptions_of_object_types (IN ps
 $names_and_descriptions$ LANGUAGE plpgsql;
 
 SELECT routine_name, routine_type
-FROM information_schema.routines
+FROM information_schema.routines r
+JOIN pg_proc pr ON r.routine_name = pr.proname
 WHERE routine_schema = 'public'
-	AND routine_definition LIKE '%pizz%'
-	AND external_language = 'SQL';
+	AND routine_definition LIKE '%table_name%'
+	AND external_language = 'SQL' 
+	AND proretset = 'false'
 
-CALL output_names_and_descriptions_of_object_types('pizz', NULL);
+CALL output_names_and_descriptions_of_object_types('table_name', NULL);
