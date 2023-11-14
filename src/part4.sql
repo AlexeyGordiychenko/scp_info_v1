@@ -22,8 +22,10 @@ CREATE TABLE table_name_pizzeria
 
 CREATE OR REPLACE PROCEDURE import_data 
 	(IN table_name VARCHAR, IN file_path TEXT, IN separator CHAR) AS $import$
+	BEGIN
 		EXECUTE format('COPY %s FROM ''%s'' DELIMITER ''%s'' CSV HEADER;', table_name, file_path, separator);
-$import$ LANGUAGE sql;	
+	END;	
+$import$ LANGUAGE plpgsql;	
 
 CALL import_data ('person', '/tmp/person.csv', ',');
 CALL import_data ('table_name_menu', '/tmp/table_name_menu.csv', ',');
@@ -83,6 +85,15 @@ CREATE TRIGGER trg_person_check_age
 BEFORE INSERT ON person
 FOR EACH ROW 
 EXECUTE FUNCTION fnc_trg_person_check_age();
+
+CREATE PROCEDURE insert_pizzeria(IN pname VARCHAR, IN praiting NUMERIC) AS $insert_pizzeria$
+INSERT INTO table_name_pizzeria 
+VALUES ((SELECT COALESCE (MAX(id)+1, 1) FROM table_name_pizzeria),
+		pname,
+		praiting);
+$insert_pizzeria$ LANGUAGE SQL;
+
+CALL insert_pizzeria ('NewYork Pizza', 4.4);
 
 ----------1) Создать хранимую процедуру, которая, не уничтожая базу данных, уничтожает все те таблицы текущей базы данных, имена которых начинаются с фразы 'table_name'.----------
 
