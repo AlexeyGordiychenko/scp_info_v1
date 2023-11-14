@@ -58,6 +58,16 @@ $$ LANGUAGE SQL;
 SELECT *
 FROM fnc_pizzeria_min_raiting();
 
+CREATE OR REPLACE FUNCTION fnc_pizzeria_raiting(IN praiting NUMERIC) 
+RETURNS TABLE (pizzeria_name VARCHAR, raiting NUMERIC) AS $$
+SELECT pizzeria_name, raiting
+FROM table_name_pizzeria
+WHERE raiting >= praiting
+$$ LANGUAGE SQL;
+
+SELECT *
+FROM fnc_pizzeria_raiting(4.5);
+
 CREATE OR REPLACE FUNCTION fnc_trg_pizzeria_insert() RETURNS TRIGGER AS $pizzeria_insert$
 	BEGIN
 		IF NEW.raiting > 5.0
@@ -94,6 +104,7 @@ VALUES ((SELECT COALESCE (MAX(id)+1, 1) FROM table_name_pizzeria),
 $insert_pizzeria$ LANGUAGE SQL;
 
 CALL insert_pizzeria ('NewYork Pizza', 4.4);
+
 
 ----------1) Создать хранимую процедуру, которая, не уничтожая базу данных, уничтожает все те таблицы текущей базы данных, имена которых начинаются с фразы 'table_name'.----------
 
