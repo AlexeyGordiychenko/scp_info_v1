@@ -483,9 +483,18 @@ $$;
 CREATE
 OR REPLACE FUNCTION fnc_highest_xp() RETURNS TABLE(peer VARCHAR, xp INT) AS $$
 SELECT peer,
-    SUM(xp_amount) AS XP
-FROM xp
-    INNER JOIN checks ON xp.check = checks.id
+    SUM(XP) AS XP
+FROM (
+        -- Max XP for each task, because a peer can check one task several times
+        -- according to 3.2
+        SELECT peer,
+            task,
+            MAX(xp_amount) AS XP
+        FROM checks
+            INNER JOIN xp ON checks.id = xp.check
+        GROUP BY peer,
+            task
+    ) AS d
 GROUP BY peer
 ORDER BY XP DESC
 LIMIT 1;
