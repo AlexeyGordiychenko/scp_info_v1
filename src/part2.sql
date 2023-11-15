@@ -31,6 +31,12 @@ CREATE OR REPLACE PROCEDURE add_p2p_check
 		END;
 $add_p2p$ LANGUAGE plpgsql;
 
+SELECT *
+FROM checks;
+
+SELECT *
+FROM p2p;
+
 CALL add_p2p_check ('morozhenka', 'arbuzik', 'C3_s21_string+', 'Start', '13:20:00');
 CALL add_p2p_check ('morozhenka', 'arbuzik', 'C3_s21_string+', 'Success', '14:15:00');
 
@@ -65,6 +71,9 @@ CREATE OR REPLACE PROCEDURE add_verter_check
 			END IF;			 
 		END;
 $add_verter$ LANGUAGE plpgsql;
+
+SELECT * 
+FROM verter;
 
 CALL add_verter_check ('morozhenka', 'C3_s21_string+', 'Start', '13:20:05');
 CALL add_verter_check ('morozhenka', 'C3_s21_string+', 'Failure', '13:21:05');
@@ -106,6 +115,9 @@ FOR EACH ROW
 WHEN (NEW.state = 'Start')
 EXECUTE FUNCTION fnc_trg_transferred_points_insert_update();
 
+SELECT *
+FROM transferred_points;
+
 CALL add_p2p_check ('pechenca', 'marmeladka', 'C5_s21_decimal', 'Start', '15:20:00');
 CALL add_p2p_check ('pechenca', 'marmeladka', 'C5_s21_decimal', 'Success', '16:20:00');
 
@@ -146,8 +158,12 @@ BEFORE INSERT ON xp
 FOR EACH ROW 
 EXECUTE FUNCTION fnc_trg_xp_insert();
 
+SELECT *
+FROM xp;
+
 CALL add_verter_check ('pechenca', 'C5_s21_decimal', 'Start', '16:20:05');
 CALL add_verter_check ('pechenca', 'C5_s21_decimal', 'Success', '16:21:05');
+
 INSERT INTO xp
 VALUES ((SELECT COALESCE (MAX(id)+1, 1) FROM xp),
 		(SELECT "check"

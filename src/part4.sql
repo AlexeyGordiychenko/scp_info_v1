@@ -103,6 +103,9 @@ VALUES ((SELECT COALESCE (MAX(id)+1, 1) FROM table_name_pizzeria),
 		praiting);
 $insert_pizzeria$ LANGUAGE SQL;
 
+SELECT *
+FROM table_name_pizzeria;
+
 CALL insert_pizzeria ('NewYork Pizza', 4.4);
 
 
