@@ -84,3 +84,7 @@ id,check,checking_peer,state,time
 83,42,arbuzik,Success,12:37:28
 84,43,keksik,Start,12:11:47
 85,43,keksik,Success,12:59:34
+86,44,tartaletka,Start,09:14:14
+87,44,tartaletka,Success,09:44:44
+88,45,tartaletka,Start,09:14:14
+89,45,tartaletka,Success,09:44:44
