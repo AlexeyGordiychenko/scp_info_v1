@@ -1,4 +1,4 @@
-CREATE DATABASE info21_part4;
+CREATE DATABASE info_part4;
 
 CREATE TABLE person
 (

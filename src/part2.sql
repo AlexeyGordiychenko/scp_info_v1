@@ -37,8 +37,8 @@ FROM checks;
 SELECT *
 FROM p2p;
 
-CALL add_p2p_check ('morozhenka', 'arbuzik', 'C3_s21_string+', 'Start', '13:20:00');
-CALL add_p2p_check ('morozhenka', 'arbuzik', 'C3_s21_string+', 'Success', '14:15:00');
+CALL add_p2p_check ('morozhenka', 'arbuzik', 'C3_scp_string+', 'Start', '13:20:00');
+CALL add_p2p_check ('morozhenka', 'arbuzik', 'C3_scp_string+', 'Success', '14:15:00');
 
 ----------Процедура добавления проверки Verter'ом----------
 
@@ -75,8 +75,8 @@ $add_verter$ LANGUAGE plpgsql;
 SELECT * 
 FROM verter;
 
-CALL add_verter_check ('morozhenka', 'C3_s21_string+', 'Start', '13:20:05');
-CALL add_verter_check ('morozhenka', 'C3_s21_string+', 'Failure', '13:21:05');
+CALL add_verter_check ('morozhenka', 'C3_scp_string+', 'Start', '13:20:05');
+CALL add_verter_check ('morozhenka', 'C3_scp_string+', 'Failure', '13:21:05');
 
 ----------Триггер на заполнение таблицы transferred_points----------
 
@@ -118,8 +118,8 @@ EXECUTE FUNCTION fnc_trg_transferred_points_insert_update();
 SELECT *
 FROM transferred_points;
 
-CALL add_p2p_check ('pechenca', 'marmeladka', 'C5_s21_decimal', 'Start', '15:20:00');
-CALL add_p2p_check ('pechenca', 'marmeladka', 'C5_s21_decimal', 'Success', '16:20:00');
+CALL add_p2p_check ('pechenca', 'marmeladka', 'C5_scp_decimal', 'Start', '15:20:00');
+CALL add_p2p_check ('pechenca', 'marmeladka', 'C5_scp_decimal', 'Success', '16:20:00');
 
 ----------Триггер на заполнение таблицы xp----------
 CREATE OR REPLACE FUNCTION fnc_trg_xp_insert() RETURNS TRIGGER AS $xp_insert$
@@ -140,7 +140,7 @@ CREATE OR REPLACE FUNCTION fnc_trg_xp_insert() RETURNS TRIGGER AS $xp_insert$
 		IF NEW."check" IN (SELECT checks.id
 						   FROM checks
 						   JOIN tasks ON checks.task = tasks.title
-						   WHERE tasks.title IN ('C2_SimpleBashUtils', 'C3_s21_string+', 'C4_s21_math', 'C5_s21_decimal', 'C6_s21_matrix')) THEN
+						   WHERE tasks.title IN ('C2_SimpleBashUtils', 'C3_scp_string+', 'C4_scp_math', 'C5_scp_decimal', 'C6_scp_matrix')) THEN
 			IF (SELECT state
 				FROM verter
 				WHERE "check" = NEW."check"
@@ -161,8 +161,8 @@ EXECUTE FUNCTION fnc_trg_xp_insert();
 SELECT *
 FROM xp;
 
-CALL add_verter_check ('pechenca', 'C5_s21_decimal', 'Start', '16:20:05');
-CALL add_verter_check ('pechenca', 'C5_s21_decimal', 'Success', '16:21:05');
+CALL add_verter_check ('pechenca', 'C5_scp_decimal', 'Start', '16:20:05');
+CALL add_verter_check ('pechenca', 'C5_scp_decimal', 'Success', '16:21:05');
 
 INSERT INTO xp
 VALUES ((SELECT COALESCE (MAX(id)+1, 1) FROM xp),

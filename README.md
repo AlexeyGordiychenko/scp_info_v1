@@ -1,4 +1,4 @@
-# Info21 v1.0 (Group project, 2 members)
+# Info v1.0 (Group project, 2 members)
 
 Data analysis and statistics for the school.
 
