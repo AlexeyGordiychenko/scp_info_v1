@@ -1,5 +1,5 @@
 -- @block
--- @conn school21
+-- @conn school
 -- 3.1 Write a function that returns the TransferredPoints table in a more
 -- human-readable form
 CREATE
@@ -47,7 +47,7 @@ ORDER BY t1.checking_peer,
 $$ LANGUAGE SQL;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.2 Write a function that returns a table of the following form: user name,
 -- name of the checked task, number of XP received
 CREATE
@@ -67,7 +67,7 @@ ORDER BY peer,
 $$ LANGUAGE SQL;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.3 Write a function that finds the peers who have not left campus for the
 -- whole day
 CREATE
@@ -83,7 +83,7 @@ ORDER BY peer;
 $$ LANGUAGE SQL;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.4 Calculate the change in the number of peer points of each peer using the
 -- TransferredPoints table
 CREATE
@@ -106,7 +106,7 @@ ORDER BY points_change DESC;
 $$ LANGUAGE SQL;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.5 Calculate the change in the number of peer points of each peer using the
 -- table returned by the first function
 CREATE
@@ -129,7 +129,7 @@ ORDER BY points_change DESC;
 $$ LANGUAGE SQL;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.6 Find the most frequently checked task for each day
 CREATE
 OR REPLACE FUNCTION fnc_most_frequently_checked_tasks() RETURNS TABLE(DAY VARCHAR, task VARCHAR) AS $$ WITH d AS (
@@ -168,7 +168,7 @@ ORDER BY day;
 $$ LANGUAGE SQL;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.7 Find all peers who have completed the whole given block of tasks and the
 -- completion date of the last task
 CREATE
@@ -206,7 +206,7 @@ END;
 $$;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.8 Determine which peer each student should go to for a check
 CREATE
 OR REPLACE FUNCTION fnc_recommended_peer() RETURNS TABLE(peer VARCHAR, recommended_peer VARCHAR) AS $$ WITH f AS (
@@ -248,7 +248,7 @@ ORDER BY peer;
 $$ LANGUAGE SQL;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.9 Determine the percentage of peers who:
 --     Started only block 1
 --     Started only block 2
@@ -319,7 +319,7 @@ END;
 $$;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.10 Determine the percentage of peers who have ever successfully passed a
 -- check on their birthday
 CREATE
@@ -349,7 +349,7 @@ FROM checks_on_bday;
 $$ LANGUAGE SQL;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.11 Determine all peers who did the given tasks 1 and 2, but did not do task 3
 CREATE
 OR REPLACE PROCEDURE prd_peers_task1_task2_not_task3(
@@ -387,7 +387,7 @@ END;
 $$;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.12 Using recursive common table expression, output the number of preceding
 -- tasks for each task
 CREATE
@@ -414,7 +414,7 @@ ORDER BY prev_count;
 $$ LANGUAGE SQL;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.13 Find "lucky" days for checks. A day is considered "lucky" if it has at
 -- least N consecutive successful checks
 CREATE
@@ -478,7 +478,7 @@ END;
 $$;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.14 Find the peer with the highest amount of XP
 CREATE
 OR REPLACE FUNCTION fnc_highest_xp() RETURNS TABLE(peer VARCHAR, xp INT) AS $$
@@ -502,7 +502,7 @@ LIMIT 1;
 $$ LANGUAGE SQL;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.15 Determine the peers that came before the given time at least N times
 -- during the whole time
 CREATE
@@ -520,7 +520,7 @@ END;
 $$;
 
 -- @block
--- @conn school21
+-- @conn school
 --3.16 Determine the peers who left the campus more than M times during the last
 --N days
 CREATE
@@ -539,7 +539,7 @@ END;
 $$;
 
 -- @block
--- @conn school21
+-- @conn school
 -- 3.17 Determine for each month the percentage of early entries
 CREATE
 OR REPLACE FUNCTION fnc_percentage_of_early_entries() RETURNS TABLE(month VARCHAR, early_entries FLOAT) AS $$

@@ -1,5 +1,5 @@
 ----------Cоздание базы данных----------
-CREATE DATABASE school21;
+CREATE DATABASE school;
 
 ----------Cоздание таблиц----------
 CREATE TABLE peers
