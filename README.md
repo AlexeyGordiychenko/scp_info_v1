@@ -2,6 +2,20 @@
 
 Data analysis and statistics for the school.
 
+## My part of the project
+
+I've made Part 3 of the task and added csv data for it.
+
+So for my code you can check files:
+
++ [part3.sql](./src/part3.sql)
++ [part3_test.sql](./src/part3_test.sql)
+
+
+## Score:
+
+The final score is 120% (max).
+
 
 ## Task
 
@@ -89,14 +103,14 @@ In this example, the only "out" is the record with an ID equal to 2. Peer with t
 
 ## Part 1. Creating a database
 
-Write a *part1.sql* script that creates the database and all the tables described above.
+Write a [*part1.sql*](./src/part1.sql) script that creates the database and all the tables described above.
 
 Add procedures to the script that allow you to import and export data for each table from/to a file with a *.csv* extension. \
 The *csv* file separator is specified as a parameter of each procedure.
 
 ## Part 2. Changing data
 
-Create a *part2.sql* script, in which, in addition to what is described below, add test queries/calls for each item.
+Create a [*part2.sql*](./src/part2.sql) script, in which, in addition to what is described below, add test queries/calls for each item.
 
 ##### 1) Write a procedure for adding P2P check
 Parameters: nickname of the person being checked, checker's nickname, task name, [P2P check status]( #check-status), time. \
@@ -118,15 +132,15 @@ If the record does not pass the check, do not add it to the table.
 
 ### Part 3. Getting data
 
-Create a *part3.sql* script, in which you should include the necessary procedures and functions.
+Create a [*part3.sql*](./src/part3.sql) script, in which you should include the necessary procedures and functions.
 
-See comments in the *part3.sql* with tasks.
+See comments in the [*part3.sql*](./src/part3.sql) with tasks.
 
 ## Bonus. Part 4. Metadata
 
 For this part of the task, you need to create a separate database, in which to create the tables, functions, procedures, and triggers needed to test the procedures.
 
-Add the creation and filling of this database, as well as the written procedures, to the *part4.sql* file.
+Add the creation and filling of this database, as well as the written procedures, to the [*part4.sql*](./src/part4.sql) file.
 
 ##### 1) Create a stored procedure that, without destroying the database, destroys all those tables in the current database whose names begin with the phrase 'TableName'.
 
